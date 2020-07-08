@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const {logRequest, getDateFormatted} = require('../utils')
-const {readFile, appendFile} = require('fs');
+const {readFile, appendFile, exists, mkdirSync} = require('fs');
 
 // INSERT data in file log
 router.post("/", logRequest, (req, res) => {
@@ -20,19 +20,20 @@ router.post("/", logRequest, (req, res) => {
     file = `${LOG_PATH}${file}`;
     timestamp = getDateFormatted();
     contentData = `${timestamp}: ${data}\n`;
-    appendFile(file, contentData, (err) => {
+    exists(LOG_PATH, (found) => {
+        if (!found)
+            mkdirSync(LOG_PATH,'0777', true);
 
-        if (err)
-        {
-            response = {error: err.message};
-        } else{
-            response = {success: `Success: ${file} Log file write with: ${data}`};
-        }
-
-        console.log(`Send: ${JSON.stringify(response)}`);
-        res.json(response);
-     });
-
+        appendFile(file, contentData, (err) => {
+            if (err) {
+                response = {error: err.message};
+            } else{
+                response = {success: `Success: ${file} Log file write with: ${data}`};
+            }
+            console.log(`Send: ${JSON.stringify(response)}`);
+            res.json(response);
+         });
+    });
 })
     
 // GET all log file content

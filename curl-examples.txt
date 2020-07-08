@@ -1,30 +1,30 @@
 PROD
 
 // Server
-curl --header "Content-Type: application/json" --request POST --data '{"file": "servidor.log", "data": "Servidor: imobsrv versao 20.05 R30770"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "servidor.log", "data": "Servidor: imobsrv versao 20.05 R30770"}' http://localhost:8001/log
 
 //Client
-curl --header "Content-Type: application/json" --request POST --data '{"file": "cliente.log", "data": "Cliente: 20200701-121930 30772"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "cliente.log", "data": "Cliente: 20200701-121930 30772"}' http://localhost:8001/log
 
 //Web
-curl --header "Content-Type: application/json" --request POST --data '{"file": "web.log", "data": 'Web: module.exports = { ReleaseCliente: 30742, Versao: `20.05`, ReleaseCandidate: false, };"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "web.log", "data": 'Web: module.exports = { ReleaseCliente: 30742, Versao: `20.05`, ReleaseCandidate: false, };"}' http://localhost:8001/log
 
 //Client
-curl --header "Content-Type: application/json" --request POST --data '{"file": "publicacao.log", "data": "Servidor: imobsrv versao 20.05 R30770 | Cliente: 20200701-143946 30778"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "publicacao.log", "data": "Servidor: imobsrv versao 20.05 R30770 | Cliente: 20200701-143946 30778"}' http://localhost:8001/log
 
 DESENV
 
 -- Server
-curl --header "Content-Type: application/json" --request POST --data '{"file": "servidor-tst.log", "data": "Servidor: imobsrv versao 20.05 R30770(RC)"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "servidor-tst.log", "data": "Servidor: imobsrv versao 20.05 R30770(RC)"}' http://localhost:8001/log
 
 -- Client
-curl --header "Content-Type: application/json" --request POST --data '{"file": "cliente-tst.log", "data": "Cliente: 20200701-121930 30772 (RC)"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "cliente-tst.log", "data": "Cliente: 20200701-121930 30772 (RC)"}' http://localhost:8001/log
 
 -- Web
-curl --header "Content-Type: application/json" --request POST --data '{"file": "web-tst.log", "data": "Web: module.exports = { ReleaseCliente: 30742, Versao: `20.05`, ReleaseCandidate: true, };"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "web-tst.log", "data": "Web: module.exports = { ReleaseCliente: 30742, Versao: `20.05`, ReleaseCandidate: true, };"}' http://localhost:8001/log
 
 -- Client
-curl --header "Content-Type: application/json" --request POST --data '{"file": "publicacao-tst.log", "data": "Servidor: imobsrv versao 20.05 R30770 (RC) | Cliente: 20200701-143946 30778 (RC)"}' http://localhost:3000/log
+curl --header "Content-Type: application/json" --request POST --data '{"file": "publicacao-tst.log", "data": "Servidor: imobsrv versao 20.05 R30770 (RC) | Cliente: 20200701-143946 30778 (RC)"}' http://localhost:8001/log
 
 
 
