@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Geração de Versão</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" >
+    <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        h1{
+            font-family: 'Bangers', cursive;
+        }
+        body{
+            font-family: 'Indie Flower', cursive;
+        }
+        .tab-pane {
+            font-family: 'Share Tech Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="min-height: 800px">
+        <h1 class="display-4 text-center mb-5">Controle de Geração de Versão</h1>
+
+        <div class="row">
+            <div class="col-5 pt-3">
+                <p class="lead font-weight-bold text-truncate">Repositório</p>
+            </div>
+            <div class="col-5 pt-3 font-weight-bold" ><p id="status" class="lead font-weight-bold text-truncate"></p></div>
+            <div class="col-2 pt-4 text-center">
+                <div class="custom-control custom-switch" id="btn-toggle">
+                    <input type="checkbox" class="custom-control-input" id="switch1">
+                    <label class="custom-control-label" for="switch1"></label>
+                    </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <select class="form-control" style="max-width: 200px;" name="" id="target">
+                    <option value="prod">Produção</option>
+                    <option value="desenv">Desenvolvimento</option>
+                </select>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col">
+                <div class="nav nav-tabs mt-3 ">
+                    <a href="#log1" id="nav1" class="nav-link active" data-toggle="tab">Servidor</a>
+                    <a href="#log2" id="nav2" class="nav-link" data-toggle="tab">Cliente</a>
+                    <a href="#log3" id="nav3" class="nav-link" data-toggle="tab">Web</a>
+                    <a href="#log4" id="nav4" class="nav-link" data-toggle="tab">Publicação</a>
+                </div>
+
+                <div class="tab-content p-3" style="min-height: 600px;">
+                    <div class="tab-pane active" id="log1"></div>
+                    <div class="tab-pane" id="log2"></div>
+                    <div class="tab-pane" id="log3"></div>
+                    <div class="tab-pane" id="log4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script>
+    </script>
+</body>
+</html>
