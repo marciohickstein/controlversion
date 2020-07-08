@@ -1,5 +1,5 @@
 require('dotenv').config();
-const PORT_DEFAULT = 3000;
+const PORT_DEFAULT = 8001;
 
 // Requires
 const express = require("express");
