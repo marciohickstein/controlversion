@@ -5,8 +5,9 @@ function pad(n){
 // Get date no timezone Brazil Sao Paulo
 function getDateFormatted(){
     let date = getDate();
-    let dateFormatted = `${pad(date.getDate())}-${pad(date.getMonth())}-${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
-
+    let dateFormatted = 
+        `${pad(date.getDate())}-${pad(date.getMonth())}-${date.getFullYear()} 
+            ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     return dateFormatted;
 }
 

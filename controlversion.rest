@@ -1,5 +1,5 @@
 ### Obtem dados do log
-GET http://localhost:8001/log?file=servidor.log
+GET http://localhost:8001/log?file=cliente.log
 ### Salva dados do log
 POST http://localhost:8001/log
 Content-Type: application/json
