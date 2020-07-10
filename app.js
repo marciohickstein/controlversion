@@ -21,5 +21,5 @@ app.get('*', function(req, res){
 });
 
 app.listen(PORT_DEFAULT, function() {
-    console.log(`Cotrole de Geração de Versão rodando na porta ${PORT_DEFAULT}`);
+    console.log(`Controle de Geracao de Versao rodando na porta ${PORT_DEFAULT}`);
   });
