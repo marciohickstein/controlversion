@@ -20,6 +20,7 @@ router.post("/", logRequest, (req, res) => {
     file = `${LOG_PATH}${file}`;
     timestamp = getDateFormatted();
     contentData = `${timestamp}: ${data}\n`;
+    console.log(contentData);
     exists(LOG_PATH, (found) => {
         if (!found)
             mkdirSync(LOG_PATH,'0777', true);

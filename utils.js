@@ -4,14 +4,15 @@ function pad(n){
 
 // Get date no timezone Brazil Sao Paulo
 function getDateFormatted(){
-    let date = getDate();
-    let dateFormatted = 
-        `${pad(date.getDate())}-${pad(date.getMonth())}-${date.getFullYear()} 
-            ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-    return dateFormatted;
+    let dateTime = getDateTime();
+    let date = `${pad(dateTime.getDate())}-${pad(dateTime.getMonth())}-${dateTime.getFullYear()}`;
+    let time = `${pad(dateTime.getHours())}:${pad(dateTime.getMinutes())}:${pad(dateTime.getSeconds())}`;
+    let dateTimeFormatted = `${date} ${time}`;
+
+    return dateTimeFormatted;
 }
 
-function getDate(){
+function getDateTime(){
     const dateString = new Date().toLocaleString('en-us',
     {
         timeZone: 'America/Sao_Paulo'
@@ -38,6 +39,6 @@ function logRequest(req, res, next){
 }
 
 // Resources exported
-module.exports = {parserData, getDate, logRequest, getDateFormatted};
+module.exports = {parserData, getDateTime, logRequest, getDateFormatted};
 
 
