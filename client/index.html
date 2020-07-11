@@ -55,20 +55,20 @@
 <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function login(){
-        let user = document.getElementById('user');
-        let passwd = document.getElementById('passwd');
+        const user = document.getElementById('user');
+        const passwd = document.getElementById('passwd');
+        const url = `${window.location.origin}/login?user=${user.value}&passwd=${passwd.value}`;
 
-        if (!user || !passwd){
-            alert("Por favor, entre com o usuário e senha!");
-            return ;
-        }
-        if ((user.value === 'suporte' && passwd.value === 'sup@rte') ||
-            (user.value === 'geracao' && passwd.value === '!m@biliar')){
+        console.log(url)
+        fetch(url)
+        .then(response => { return response.json() })
+        .then(data => {
+            if (data.login === 'success'){
                 window.location.replace(`${window.location.origin}/panel.html`)
-                return ;
+            } else {
+                alert(data.error);
             }
-
-        alert("Usuário ou senha incorreto(s)!");
+        })
     }
 </script>
 </body>
