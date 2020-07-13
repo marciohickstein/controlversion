@@ -1,7 +1,8 @@
 const LOCKED   = "LOCKED";
 const UNLOCKED = "UNLOCKED";
+const CMDREPO  = "/home/svn/repositorio.sh"
 
-var url = window.location.origin;
+const url = window.location.origin;
 
 // Faz chamadas REST no servidor para buscar os dados
 function sendGetRest(url, callback) {
@@ -70,7 +71,7 @@ function execCommand(command, params, callback){
 }
 
 function getStatus(){
-    let command = "repositorio.sh";
+    let command = CMDREPO;
     let params = ["status"];
     execCommand(command, params, (err, data) => {
         let status = '';
@@ -108,7 +109,7 @@ function getTabSelected(nav, log){
 
 $(() => {
     $("#btn-toggle").on('click', e => {
-        let command = "repositorio.sh";
+        let command = CMDREPO;
         let status = $('#status').html();
 
         let params = status.trim() === UNLOCKED ? ["lock"] : ["unlock"];
