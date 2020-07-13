@@ -20,7 +20,6 @@ router.post("/", logRequest, (req, res) => {
     file = `${LOG_PATH}${file}`;
     timestamp = getDateFormatted();
     contentData = `${timestamp}: ${data}\n`;
-    console.log(contentData);
     exists(LOG_PATH, (found) => {
         if (!found)
             mkdirSync(LOG_PATH,'0777', true);
@@ -45,7 +44,7 @@ router.get("/", logRequest, (req, res) => {
     {
         response = {error: 'Parameter file is required'};
         console.log(`Send: ${JSON.stringify(response)}`);
-        res.json(response);
+        return res.json(response);
     }
 
     file = `${LOG_PATH}${file}`;
@@ -53,7 +52,7 @@ router.get("/", logRequest, (req, res) => {
         let fileData = err ? {error: err.message} : data.toString();
 
         console.log(`Send: ${JSON.stringify(fileData)}`);
-        res.json(fileData);
+        return res.json(fileData);
     });
 });
 

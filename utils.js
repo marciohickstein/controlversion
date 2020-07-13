@@ -1,3 +1,26 @@
+const users = [ 
+                {id: 1, username: 'suporte', password: 'sup@rte'  }, 
+                {id: 2, username: 'geracao', password: '!m@biliar'} 
+              ]
+
+const USER_VALID    = 0;
+const USER_INVALID  = 1;
+const USER_NOTSEND  = 2;
+
+function checkUser(user, passwd){
+    if (!user || !passwd){
+        return USER_NOTSEND; // Faltou usuario ou senha
+    }
+
+    // Valida senha hardcode
+    for (const userList of users) {
+        if (userList.username === user && userList.password === passwd)
+            return USER_VALID;
+    }
+
+    return USER_INVALID;
+}
+
 function pad(n){
     return n < 10 ? '0' + n : n;
 }
@@ -38,7 +61,4 @@ function logRequest(req, res, next){
     return next();
 }
 
-// Resources exported
-module.exports = {parserData, getDateTime, logRequest, getDateFormatted};
-
-
+module.exports = {parserData, getDateTime, logRequest, getDateFormatted, checkUser, USER_VALID, USER_INVALID, USER_NOTSEND };

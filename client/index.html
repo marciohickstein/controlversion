@@ -41,7 +41,7 @@
             <input type="password" id="passwd" class="form-control" placeholder="Senha" required="required">
         </div>
         <div class="form-group">
-            <button type="button" onclick="login()"  class="btn btn-primary btn-block">Log in</button>
+            <button type="button" onclick="login()" class="btn btn-primary btn-block">Log in</button>
         </div>
         <!-- <div class="clearfix">
             <label class="pull-left checkbox-inline"><input type="checkbox"> Remember me</label>
@@ -55,15 +55,21 @@
 <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function login(){
-        const user = document.getElementById('user');
-        const passwd = document.getElementById('passwd');
-        const url = `${window.location.origin}/login?user=${user.value}&passwd=${passwd.value}`;
-
-        console.log(url)
-        fetch(url)
+        let user = document.getElementById('user').value;
+        let passwd = document.getElementById('passwd').value;
+        let url = window.location.origin;
+        
+        fetch(`${url}/login`, {
+            method: "POST", 
+            body: JSON.stringify({user: user, passwd: passwd}),
+            headers: { 
+                "Content-type": "application/json; charset=UTF-8"
+            } 
+        })
         .then(response => { return response.json() })
         .then(data => {
-            if (data.login === 'success'){
+            if (data.auth){
+                sessionStorage.setItem("token", data.token);
                 window.location.replace(`${window.location.origin}/panel.html`)
             } else {
                 alert(data.error);

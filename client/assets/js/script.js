@@ -21,22 +21,28 @@ function sendGetRest(url, callback) {
 }
 
 function sendHttpRest(path, method, data, callbackSuccess){
+    let token = sessionStorage.getItem("token");
     $.ajax({
         url: `${url}/${path}`,
         type: method,
         data: JSON.stringify(data),
         processData: false,
         contentType: "application/json; charset=UTF-8",
+        headers: {
+            'x-access-token': token ? token : ''
+        },
         beforeSend : function(){
             console.log(`Enviando transação para o servidor: [${method}] ${this.url}`);
         },
         success: function(data){
             console.log(`Dados retornado da transação com o servidor: ${JSON.stringify(data)}`);
             if (callbackSuccess)
-                callbackSuccess(data);
+                callbackSuccess(null, data);
         },
         error: function(xhr, ajaxOptions, thrownError) {
-            console.log(`Ocorreu um erro na transação com o servidor: ${this.url}`);
+            console.log(`Ocorreu um erro na transação com o servidor: ${thrownError}`);
+            if (callbackSuccess)
+                callbackSuccess(thrownError, null);
         }
     });
 }
@@ -66,14 +72,18 @@ function execCommand(command, params, callback){
 function getStatus(){
     let command = "repositorio.sh";
     let params = ["status"];
-    execCommand(command, params, (response) => {
-        let status = (response.code === -2) ? response.stderr : response.stdout;
-        console.log(response.code);
-        console.log(response.stderr);
-        console.log(status);
-        $('#status').html(status);
+    execCommand(command, params, (err, data) => {
+        let status = '';
+
+        if (err){
+            status = err;
+        }else{
+            status = (data.code === -2) ? data.stderr : data.stdout;
+        }
+
         let switchButton = $('#switch1')[0];
-        switchButton.checked = (response.stdout.trim() === LOCKED);
+        switchButton.checked = (status.trim() === LOCKED);
+        $('#status').html(status);
     });
 }
 
@@ -103,7 +113,8 @@ $(() => {
 
         let params = status.trim() === UNLOCKED ? ["lock"] : ["unlock"];
 
-        execCommand(command, params, (data)=>{
+        execCommand(command, params, (err, data)=>{
+            console.log(err)
             getStatus();
         });
     });
