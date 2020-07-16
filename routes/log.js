@@ -1,9 +1,10 @@
 const LOG_PATH="./log/"
 const express = require('express');
 const router = express.Router();
+const prependFile = require('prepend-file');
 
 const {logRequest, getDateFormatted} = require('../utils')
-const {readFile, appendFile, exists, mkdirSync} = require('fs');
+const fs = require('fs');
 
 // INSERT data in file log
 router.post("/", logRequest, (req, res) => {
@@ -20,11 +21,14 @@ router.post("/", logRequest, (req, res) => {
     file = `${LOG_PATH}${file}`;
     timestamp = getDateFormatted();
     contentData = `${timestamp}: ${data}\n`;
-    exists(LOG_PATH, (found) => {
-        if (!found)
-            mkdirSync(LOG_PATH,'0777', true);
+    let buffer = Buffer.from(contentData);
 
-        appendFile(file, contentData, (err) => {
+    fs.exists(LOG_PATH, (found) => {
+        if (!found)
+            fs.mkdirSync(LOG_PATH,'0777', true);
+
+            
+        prependFile(file, contentData, (err) => {
             if (err) {
                 response = {error: err.message};
             } else{
@@ -33,6 +37,15 @@ router.post("/", logRequest, (req, res) => {
             console.log(`Send: ${JSON.stringify(response)}`);
             res.json(response);
          });
+        // appendFile(file, contentData, (err) => {
+        //     if (err) {
+        //         response = {error: err.message};
+        //     } else{
+        //         response = {success: `Success: ${file} Log file write with: ${data}`};
+        //     }
+        //     console.log(`Send: ${JSON.stringify(response)}`);
+        //     res.json(response);
+        //  });
     });
 })
     
@@ -48,7 +61,7 @@ router.get("/", logRequest, (req, res) => {
     }
 
     file = `${LOG_PATH}${file}`;
-    readFile(file, (err, data) => {
+    fs.readFile(file, (err, data) => {
         let fileData = err ? {error: err.message} : data.toString();
 
         console.log(`Send: ${JSON.stringify(fileData)}`);

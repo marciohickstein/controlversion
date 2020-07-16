@@ -41,7 +41,7 @@
             <input type="password" id="passwd" class="form-control" placeholder="Senha" required="required">
         </div>
         <div class="form-group">
-            <button type="button" onclick="login()" class="btn btn-primary btn-block">Log in</button>
+            <button type="button" onclick="login()" class="btn btn-primary btn-block" autofocus>Log in</button>
         </div>
         <!-- <div class="clearfix">
             <label class="pull-left checkbox-inline"><input type="checkbox"> Remember me</label>
@@ -76,6 +76,18 @@
             }
         })
     }
+    $('#user').keypress(function(event){
+        var keycode = (event.keyCode ? event.keyCode : event.which);
+        if(keycode == '13'){
+            login();  
+        }
+    });
+    $('#passwd').keypress(function(event){
+        var keycode = (event.keyCode ? event.keyCode : event.which);
+        if(keycode == '13'){
+            login();  
+        }
+    });
 </script>
 </body>
 </html>                                		
