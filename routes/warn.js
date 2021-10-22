@@ -79,11 +79,10 @@ router.post("/", logRequest, (req, res) => {
     const fullPathNextModbaseDest = `${process.env.DIR_MODBASE}/mod_base_sql.${nextModbase.split('.')[1]}.prd.tst`;
     renameSync(fullPathNextModbase, fullPathNextModbaseDest);
 
+    return res.json(setOKResponse(`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso.\nFavor pedir para algum desenvolvedor efetuar o copia base!`));
   } catch (error) {
     return res.json(setErrorResponse(error.message));
   }
-
-  return res.json(setOKResponse('Modbase de lembrete criado com sucesso!'));
 })
 
 module.exports.routerWarn = router;
