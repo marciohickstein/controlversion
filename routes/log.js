@@ -2,6 +2,7 @@ const LOG_PATH="./log/"
 const express = require('express');
 const router = express.Router();
 const prependFile = require('prepend-file');
+const path = require('path');
 
 const {logRequest, getDateFormatted} = require('../utils')
 const fs = require('fs');
@@ -60,7 +61,8 @@ router.get("/", logRequest, (req, res) => {
         return res.json(response);
     }
 
-    file = `${LOG_PATH}${file}`;
+    filename = path.basename(file);
+    file = `${LOG_PATH}${filename}`;
     fs.readFile(file, (err, data) => {
         let fileData = err ? {error: err.message} : data.toString();
 

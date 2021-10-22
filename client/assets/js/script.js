@@ -48,6 +48,13 @@ function sendHttpRest(path, method, data, callbackSuccess){
     });
 }
 
+function createWarning(data, callback){
+    let url = `warn`;
+    let paramData = { data };
+
+    sendHttpRest(url, "POST", paramData, callback);
+}
+
 function getLog(file, tabLog){
     let urlRest = `${url}/log?file=${file}`;
 
@@ -117,6 +124,23 @@ $(() => {
         execCommand(command, params, (err, data)=>{
             console.log(err)
             getStatus();
+        });
+    });
+
+    $("#btn-warn").on('click', e => {
+        let texto = $('#text-warn').val();
+        createWarning(texto, (err, data)=>{
+            let message;
+
+            if (err) {
+                message = err.message;
+                console.log(err);
+            }
+            if (data) {
+                message = data.message;
+                console.log(data);
+            }
+            alert(`${message}.`);
         });
     });
 

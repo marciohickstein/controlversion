@@ -23,12 +23,14 @@ const express = require("express");
 const app = express();
 const {routerLog} = require("./routes/log");
 const {routerExec} = require('./routes/exec');
+const {routerWarn} = require('./routes/warn');
 
 // Middleware
 app.use(express.json());
 app.use("/", express.static('client/'));
 app.use("/log", routerLog);
 app.use('/exec', verifyToken, routerExec);
+app.use('/warn', verifyToken, routerWarn);
 
 app.post('/login', logRequest, (req, res) => {
     const { user, passwd } = req.body;
