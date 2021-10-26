@@ -1,8 +1,9 @@
 require('dotenv').config();
 
 const express = require('express');
-const { exec } = require("child_process");
-const { readdirSync, renameSync, writeFileSync } = require('fs');
+const { execSync } = require("child_process");
+
+const { readdirSync, unlinkSync, writeFileSync } = require('fs');
 const { logRequest, setOKResponse, setErrorResponse } = require('../utils')
 
 const router = express.Router();
@@ -12,7 +13,7 @@ const router = express.Router();
 // Le um diretorio e retorna um array com os arquivos contidos
 const readDir = (dir) => {
   const files = readdirSync(dir);
- 
+
   return Array.isArray(files) ? files : null;
 }
 
@@ -51,7 +52,6 @@ const getNextModbase = () => {
 
 // Rota para criar modbase com SQL para criar texto de lembrete
 router.post("/", logRequest, (req, res) => {
-  let response;
   let { data } = req.body;
 
   // Verifica se parametros da requisicao foram passados
@@ -63,23 +63,24 @@ router.post("/", logRequest, (req, res) => {
   try {
     const nextModbase = getNextModbase();
 
-    if (!nextModbase){
-      return res.json(setErrorResponse(`Não foi possível localizar o próximo modbase em ${process.env.DIR_MODBASE}`));
+    if (!nextModbase) {
+      return res.json(setErrorResponse(`NÃ£o foi possÃ­vel localizar o prÃ³ximo modbase em ${process.env.DIR_MODBASE}`));
     }
 
     // Escrevo no arquivo de modbase o comando para criar lembrete geral
     let text = Buffer.from(data);
-
     const fullPathNextModbase = `${process.env.DIR_MODBASE}/${nextModbase}`;
 
-    const textoSql = `fnc_cria_lembrete_aviso('${text}', null, null);`;
-  
-    writeFileSync(fullPathNextModbase, textoSql);
-    
-    const fullPathNextModbaseDest = `${process.env.DIR_MODBASE}/mod_base_sql.${nextModbase.split('.')[1]}.prd.tst`;
-    renameSync(fullPathNextModbase, fullPathNextModbaseDest);
+    const textoSql = `fnc_cria_lembrete_aviso('${text.toString()}', null, null);`;
 
-    return res.json(setOKResponse(`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso.\nFavor pedir para algum desenvolvedor efetuar o copia base!`));
+    writeFileSync(fullPathNextModbase, textoSql);
+
+    const fullPathNextModbaseDest = `${process.env.DIR_MODBASE}/mod_base_sql.${nextModbase.split('.')[1]}.prd.tst`;
+    execSync(`iconv ${fullPathNextModbase} -futf8 -tiso88591 > ${fullPathNextModbaseDest}`);
+    unlinkSync(fullPathNextModbase);
+
+    return res.json(setOKResponse(
+      `Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso.\nFavor pedir para algum desenvolvedor efetuar o copia base!`));
   } catch (error) {
     return res.json(setErrorResponse(error.message));
   }
