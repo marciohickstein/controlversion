@@ -71,7 +71,7 @@ router.post("/", logRequest, (req, res) => {
     let text = Buffer.from(data);
     const fullPathNextModbase = `${process.env.DIR_MODBASE}/${nextModbase}`;
 
-    const textoSql = `fnc_cria_lembrete_aviso('${text.toString()}', null, null);`;
+    const textoSql = `SELECT fnc_cria_lembrete_aviso('${text.toString()}', null, null);`;
 
     writeFileSync(fullPathNextModbase, textoSql);
 
