@@ -129,7 +129,20 @@ $(() => {
 
     $("#btn-warn").on('click', e => {
         let texto = $('#text-warn').val();
-        createWarning(texto, (err, data)=>{
+        let dateIni = $('#dtDateIni').val();
+        let dateEnd = $('#dtDateEnd').val();
+
+        if (!texto) {
+            alert("Por favor entre com a mensagem do aviso!");
+        }
+
+        const data = {
+            texto,
+            dateIni,
+            dateEnd
+        };
+
+        createWarning(data, (err, data)=>{
             let message;
 
             if (err) {

@@ -23,7 +23,7 @@
     </style>
 </head>
 <body>
-    <div class="container" style="min-height: 800px">
+    <div class="container" style="min-height: 900px">
         <h1 class="display-4 text-center mb-5">Controle de Geração de Versão</h1>
 
         <div class="row">
@@ -44,7 +44,11 @@
                 <p class="lead font-weight-bold text-truncate">Aviso Geral</p>
             </div>
             <div class="col-5 pt-3 font-weight-bold" >
-                <textarea class="col-12 pt-3 font-weight-bold" rows="5" id="text-warn" ></textarea>
+                    <label for="dtDateIni">De:</label>
+                    <input type="datetime-local" id="dtDateIni" name="dtDateIni" style="max-width: 180px">
+                    <label for="dtDateEnd">At&eacute;:</label>
+                    <input type="datetime-local" id="dtDateEnd" name="dtDateEnd" style="max-width: 180px">
+                    <textarea class="col-12 pt-3 font-weight-bold" rows="5" id="text-warn" ></textarea>
             </div>
             <div class="col-2 pt-4 text-center">
                 <button id="btn-warn">Gerar</button>

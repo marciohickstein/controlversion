@@ -52,11 +52,23 @@ const getNextModbase = () => {
 
 // Rota para criar modbase com SQL para criar texto de lembrete
 router.post("/", logRequest, (req, res) => {
-  let { data } = req.body;
+  let { texto, dateIni, dateEnd } = req.body.data;
 
   // Verifica se parametros da requisicao foram passados
-  if (!data) {
+  if (!texto) {
     return res.json(setErrorResponse('Faltou informar o texto que deseja ser lembrado'));
+  }
+
+  try {
+    new Date(dateIni)      
+  } catch (error) {
+    return res.json(setErrorResponse(`Campo de data inicial invalida. Erro: ${error}`));
+  }
+
+  try {
+    new Date(dateEnd)      
+  } catch (error) {
+    return res.json(setErrorResponse(`Campo de data final invalida. Erro: ${error}`));
   }
 
   // Tenta criar um modbase com o numero mais recente disponivel
@@ -68,10 +80,12 @@ router.post("/", logRequest, (req, res) => {
     }
 
     // Escrevo no arquivo de modbase o comando para criar lembrete geral
-    let text = Buffer.from(data);
+    let text = Buffer.from(texto);
     const fullPathNextModbase = `${process.env.DIR_MODBASE}/${nextModbase}`;
 
-    const textoSql = `SELECT fnc_cria_lembrete_aviso('${text.toString()}', null, null);`;
+    const strDateIni = dateIni ? `'${dateIni}'` : `null`;
+    const strDateEnd = dateEnd ? `'${dateEnd}'` : `null`;
+    const textoSql = `SELECT fnc_cria_lembrete_aviso('${text.toString()}', ${strDateIni}, ${strDateEnd});`;
 
     writeFileSync(fullPathNextModbase, textoSql);
 
