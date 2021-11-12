@@ -2,9 +2,9 @@
   "name": "controlversion",
   "version": "1.0.0",
   "description": "Controle de Geração de Versão",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "nodemon index",
+    "start": "nodemon server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
