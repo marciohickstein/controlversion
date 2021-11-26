@@ -1,3 +1,5 @@
+const { readdirSync } = require('fs');
+
 const users = [
     { id: 1, username: 'suporte', password: 'sup@rte4' },
     { id: 2, username: 'geracao', password: '!m@biliar' }
@@ -6,6 +8,46 @@ const users = [
 const USER_VALID = 0;
 const USER_INVALID = 1;
 const USER_NOTSEND = 2;
+
+// Le um diretorio e retorna um array com os arquivos contidos
+const readDir = (dir) => {
+    const files = readdirSync(dir);
+
+    return Array.isArray(files) ? files : null;
+}
+
+// Le a pasta onde esta os arquivos de modificacao de base e retorna o proximo numero disponivel
+const getNextModbase = () => {
+
+    // Obtem a lista de arquivos de modbase
+    const files = readDir(process.env.DIR_MODBASE);
+
+    if (files === null)
+        return '';
+
+    // Retorna apenas os arquivos com formato de modbase. Formato: "mod_base_sql.XXXX.proximo"
+    const modbases = files.filter((file) => {
+        return (/^mod_base_sql\.\d{4}\.proximo$/g.test(file));
+    });
+
+    if (!Array.isArray(modbases))
+        return '';
+
+    // Percorre a lista pelo proximo modbase mais recente. 
+    const modbase = modbases.reduce((modbaseAvailable, modbase) => {
+
+        if (modbaseAvailable === '')
+            return modbase;
+
+        const modbaseNum = Number(modbase.split('.')[1]);
+
+        const modbaseNumAvailable = Number(modbaseAvailable.split('.')[1]);
+
+        return (modbaseNum < modbaseNumAvailable) ? modbase : modbaseAvailable;
+    }, '');
+
+    return modbase;
+}
 
 function checkUser(user, passwd) {
     if (!user || !passwd) {
@@ -61,14 +103,14 @@ function logRequest(req, res, next) {
     return next();
 }
 
-const setOKResponse = (message) => {
+const setOKResponse = (message = '') => {
     return {
         error: false,
         message
     };
 }
 
-const setErrorResponse = (message) => {
+const setErrorResponse = (message = '') => {
     return {
         error: true,
         message
@@ -84,6 +126,8 @@ module.exports = {
     checkUser,
     setOKResponse,
     setErrorResponse,
+    getNextModbase,
+    readDir,
     USER_VALID,
     USER_INVALID,
     USER_NOTSEND
