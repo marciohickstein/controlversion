@@ -103,14 +103,14 @@ function logRequest(req, res, next) {
     return next();
 }
 
-const setOKResponse = (message) => {
+const setOKResponse = (message = '') => {
     return {
         error: false,
         message
     };
 }
 
-const setErrorResponse = (message) => {
+const setErrorResponse = (message = '') => {
     return {
         error: true,
         message
