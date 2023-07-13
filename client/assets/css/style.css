@@ -1,21 +1,24 @@
-  
   /* Style the active class (and buttons on mouse-over) */
   /* .active, .fig:hover {
     background-color: #dfd5d5;
     color: white;
   } */
 
-  .container{
+  .container2 {
     padding: 2rem;
-}
-
-.row > .col,
-.row > [class^=col-],
-.bg
-{
+  }
+  
+  .row>.col,
+  .row>[class^=col-],
+  .bg {
     padding-top: .75rem;
     padding-bottom: .75rem;
     background-color: rgba(180, 161, 148, 0.15);
-    border: 1px solid  rgba(19, 18, 18, 0.2);
-}
+    border: 1px solid rgba(19, 18, 18, 0.2);
+  }
 
+  .bg2 {
+    background-color: unset;
+    border: none;
+  }
+  
