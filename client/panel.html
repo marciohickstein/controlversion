@@ -1,69 +1,85 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Geração de Versão</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
-    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" >
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
-        h1{
-            font-family: 'Bangers', cursive;
+        h1 {
+            font-family: 'Open Sans', cursive;
         }
-        body{
-            font-family: 'Indie Flower', cursive;
+
+        body {
+            font-family: 'Open Sans', cursive;
         }
+
         .tab-pane {
             font-family: 'Share Tech Mono', monospace;
         }
     </style>
 </head>
+
 <body>
-    <div class="container" style="min-height: 900px">
-        <h1 class="display-4 text-center mb-5">Controle de Geração de Versão</h1>
+
+    <div class="container">
+        <div class="row">
+            <div class="bg2 col-8">
+                <h1 class="display-4 text-left mt-4">Geração de Versão</h1>
+            </div>
+            <div class="bg2 col-4">
+                <img src="./assets/images/logo.png" alt="Logotipo Imobiliar" width="90%" height="90%">
+            </div>
+        </div>
+    </div>
+
+    <div class="container container2" style="min-height: 290px">
 
         <div class="row">
-            <div class="col-5 pt-3">
+            <div class="col-4 pt-3">
                 <p class="lead font-weight-bold text-truncate">Repositório</p>
             </div>
-            <div class="col-5 pt-3 font-weight-bold" ><p id="status" class="lead font-weight-bold text-truncate"></p></div>
+            <div class="col-6 pt-3 font-weight-bold">
+                <p id="status" class="lead font-weight-bold text-truncate"></p>
+            </div>
             <div class="col-2 pt-4 text-center">
                 <div class="custom-control custom-switch" id="btn-toggle">
                     <input type="checkbox" class="custom-control-input" id="switch1">
                     <label class="custom-control-label" for="switch1"></label>
-                    </div>
+                </div>
             </div>
         </div>
 
         <div class="row">
-            <div class="col-5 pt-3">
+            <div class="col-4 pt-3">
                 <p class="lead font-weight-bold text-truncate">Aviso Geral</p>
             </div>
-            <div class="col-5 pt-3 font-weight-bold" >
-                    <label for="dtDateIni">De:</label>
-                    <input type="datetime-local" id="dtDateIni" name="dtDateIni" style="max-width: 180px">
-                    <label for="dtDateEnd">At&eacute;:</label>
-                    <input type="datetime-local" id="dtDateEnd" name="dtDateEnd" style="max-width: 180px">
-                    <textarea class="col-12 pt-3 font-weight-bold" rows="5" id="text-warn" ></textarea>
+            <div class="col-6 pt-3 font-weight-bold">
+                <label for="dtDateIni">De:</label>
+                <input type="datetime-local" id="dtDateIni" name="dtDateIni" style="max-width: 180px">
+                <label for="dtDateEnd">At&eacute;:</label>
+                <input type="datetime-local" id="dtDateEnd" name="dtDateEnd" style="max-width: 180px">
+                <textarea class="col-12 pt-3 font-weight-bold" rows="5" id="text-warn"></textarea>
             </div>
             <div class="col-2 pt-4 text-center">
-                <button id="btn-warn">Gerar</button>
+                <button id="btn-warn" class="btn btn-danger">Gerar</button>
             </div>
         </div>
 
         <div class="row">
-            <div class="col">
+            <div class="col d-flex text-center justify-content-between">
                 <select class="form-control" style="max-width: 200px;" name="" id="target">
                     <option value="prod">Produção</option>
                     <option value="desenv">Desenvolvimento</option>
                 </select>
+                <a class="ml-3" href="http://www.inetsoft.com.br/area-cliente/changelog.html" target="_blank"
+                    rel="noopener noreferrer">Ver correções da última release</a>
             </div>
         </div>
-
 
         <div class="row">
             <div class="col">
@@ -88,4 +104,5 @@
     <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
+
 </html>
