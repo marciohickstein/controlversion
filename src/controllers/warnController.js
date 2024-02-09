@@ -99,7 +99,7 @@ module.exports = {
 			const nextModbase = getNextModbase();
 
 			if (!nextModbase) {
-				return res.json(setErrorResponse(`N√£o foi poss√≠vel localizar o pr√≥ximo modbase em ${process.env.DIR_MODBASE}`));
+				return res.json(setErrorResponse(`N„o foi possÌvel localizar o prÛximo modbase em ${process.env.DIR_MODBASE}`));
 			}
 
 			// Escrevo no arquivo de modbase o comando para criar lembrete geral
@@ -123,15 +123,15 @@ module.exports = {
 			const currentDir = process.cwd();
 			process.chdir(process.env.DIR_MODBASE);
 
-			await execScript(`/home/svn/repositorio.sh`, [`unlock`]);
-			await execScript(`./copiabase.sh`, [basename(`${fullPathNextModbaseDest}`)]);
-			await execScript(`/home/svn/repositorio.sh`, [`lock`]);
-
+			await execScript(`/home/svn/repositorio.sh`, [ `unlock` ]);
+			await execScript(`./copiabase.sh`, [ basename(`${fullPathNextModbaseDest}`) ]);
+			await execScript(`/home/svn/repositorio.sh`, [ `lock` ]);
+			
 			process.chdir(currentDir);
 		} catch (error) {
-			const messageError =
-				`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso, ` +
-				`mas n√£o foi poss√≠vel publicar o mesmo com o programa copiabase.\n` +
+			const messageError = 
+				`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso, `+
+				`mas n„o foi possÌvel publicar o mesmo com o programa copiabase.\n`+
 				`Favor pedir para algum desenvolvedor efetuar o copia base!\n` +
 				`Error message: ${error}`;
 			return res.json(setErrorResponse(messageError));
