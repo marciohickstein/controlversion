@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { Socket } = require('net');
 const { basename } = require('path');
 const { execSync } = require("child_process");
 const { promisify } = require('util');
@@ -21,6 +22,37 @@ async function execScript(command, arguments) {
     }
 
     return success;
+}
+
+function testHostPortAccessibility(host, port) {
+	const socket = new Socket();
+
+	socket.setTimeout(2000); // Set a timeout in milliseconds
+
+	socket.on('connect', () => {
+		console.log(`Successfully connected to ${host}:${port}`);
+		socket.destroy(); // Close the socket after successful connection
+	});
+
+	socket.on('timeout', () => {
+		console.error(`Connection to ${host}:${port} timed out`);
+		socket.destroy(); // Close the socket on timeout
+	});
+
+	socket.on('error', (error) => {
+		console.error(`Error connecting to ${host}:${port}: ${error.message}`);
+		socket.destroy(); // Close the socket on error
+	});
+
+	socket.on('close', (hadError) => {
+		if (hadError) {
+			console.error(`Socket closed due to errors`);
+		} else {
+			console.log(`Socket closed gracefully`);
+		}
+	});
+
+	socket.connect(port, host);
 }
 
 const validate = (texto, dateIni, dateEnd) => {
@@ -100,5 +132,9 @@ module.exports = {
 		} 
 
 		return res.json(setOKResponse('Modbase criado e publicado com sucesso!'));
+	},
+
+	connect: async (req, res) => {
+		testHostPortAccessibility("localhost", 4001);
 	}
 }
