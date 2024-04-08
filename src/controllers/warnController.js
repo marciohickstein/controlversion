@@ -42,7 +42,7 @@ function testHostPortAccessibility(host, port, response) {
 		}
 	});
 
-	socket.connect(+port, host);
+	socket.connect(port, host);
 }
 
 async function execScript(command, arguments) {
@@ -59,37 +59,6 @@ async function execScript(command, arguments) {
 	}
 
 	return success;
-}
-
-function testHostPortAccessibility(host, port) {
-	const socket = new Socket();
-
-	socket.setTimeout(2000); // Set a timeout in milliseconds
-
-	socket.on('connect', () => {
-		console.log(`Successfully connected to ${host}:${port}`);
-		socket.destroy(); // Close the socket after successful connection
-	});
-
-	socket.on('timeout', () => {
-		console.error(`Connection to ${host}:${port} timed out`);
-		socket.destroy(); // Close the socket on timeout
-	});
-
-	socket.on('error', (error) => {
-		console.error(`Error connecting to ${host}:${port}: ${error.message}`);
-		socket.destroy(); // Close the socket on error
-	});
-
-	socket.on('close', (hadError) => {
-		if (hadError) {
-			console.error(`Socket closed due to errors`);
-		} else {
-			console.log(`Socket closed gracefully`);
-		}
-	});
-
-	socket.connect(port, host);
 }
 
 const validate = (texto, dateIni, dateEnd) => {
@@ -172,6 +141,7 @@ module.exports = {
 	},
 	connect: async (req, res) => {
 		const { host, port } = req.body;
-		testHostPortAccessibility(host, new Number(port), res);
+		console.log('XXX', host, port)
+		testHostPortAccessibility(host, port, res);
 	}
 }

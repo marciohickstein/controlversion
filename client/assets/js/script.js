@@ -59,6 +59,17 @@ function testConnection(host, port, callback){
     let url = `connect`;
     let paramData = { host, port };
 
+    if (!host) {
+        alert(`Por favor entre com o endereco do cliente que deseja testar!`);
+        return ;
+    }
+
+    if (!port) {
+        alert(`Por favor entre com a porta do cliente que deseja testar!`);
+        return ;
+    }
+
+    
     sendHttpRest(url, "POST", paramData, callback);
 }
 

@@ -24,7 +24,7 @@ module.exports = {
 		if (ret === USER_VALID) {
 			jwt.sign({ username: user }, config.app.secretKey, { algorithm: 'HS256' }, function (err, token) {
 				if (err) {
-					return res.send({ auth: false, token: null, error: 'Não foi possível criar o token de autorização' });
+					return res.send({ auth: false, token: null, error: err.message });
 				}
 
 				return res.send({ auth: true, token: token });
