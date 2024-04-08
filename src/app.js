@@ -5,18 +5,23 @@ const logRoutes = require('./routes/logRoutes');
 const warnRoutes = require('./routes/warnRoutes');
 
 const JWT = require('jsonwebtoken');
-const {logRequest, checkUser, USER_VALID, USER_INVALID, USER_NOTSEND } = require('./utils');
+const { logRequest, checkUser, USER_VALID, USER_INVALID, USER_NOTSEND } = require('./utils');
 
-function verifyToken(req, res, next){
+function verifyToken(req, res, next) {
+    if (req.path === '/connect') {
+        next();
+        return ;
+    }
+
     var token = req.headers['x-access-token'];
     if (!token) return res.status(401).json({ auth: false, message: 'No token provided.' });
-    
-    JWT.verify(token, config.app.secretKey, function(err, decoded) {
-      if (err) return res.status(500).json({ auth: false, message: 'Failed to authenticate token.' });
-      
-      // se tudo estiver ok, salva no request para uso posterior
-      req.userId = decoded.id;
-      next();
+
+    JWT.verify(token, config.app.secretKey, function (err, decoded) {
+        if (err) return res.status(500).json({ auth: false, message: 'Failed to authenticate token.' });
+
+        // se tudo estiver ok, salva no request para uso posterior
+        req.userId = decoded.id;
+        next();
     });
 }
 
@@ -41,8 +46,8 @@ class AppController {
         this.app.use('/', verifyToken, warnRoutes);
 
         //The 404 Route (ALWAYS Keep this as the last route)
-        this.app.get('*', function(req, res){
-            res.sendFile(__dirname+'/client/error404.html');
+        this.app.get('*', function (req, res) {
+            res.sendFile(__dirname + '/client/error404.html');
         });
     }
 }

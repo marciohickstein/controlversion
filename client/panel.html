@@ -74,6 +74,21 @@
         </div>
 
         <div class="row">
+            <div class="col-6 pt-3">
+                <label>Endereco:</label>
+                <input type="text" id="inputHost" name="inputHost" style="width: 380px">
+            </div>
+            <div class="col-4 pt-3">
+                <label for="switch1">Porta:</label>
+                <input type="number" id="inputPort" name="inputPort" style="max-width: 180px">
+            </div>
+            <div class="col-2 pt-4 text-center">
+                <button id="btn-connect" class="btn btn-danger">Testar Conexão</button>
+            </div>
+        </div>
+
+
+        <div class="row">
             <div class="col d-flex text-center justify-content-between">
                 <select class="form-control" style="max-width: 200px;" name="" id="target">
                     <option value="prod">Produção</option>
@@ -107,5 +122,4 @@
     <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
-
 </html>

@@ -55,6 +55,13 @@ function createWarning(data, callback){
     sendHttpRest(url, "POST", paramData, callback);
 }
 
+function testConnection(host, port, callback){
+    let url = `connect`;
+    let paramData = { host, port };
+
+    sendHttpRest(url, "POST", paramData, callback);
+}
+
 function getLog(file, tabLog){
     let urlRest = `${url}/log?file=${file}`;
 
@@ -124,6 +131,18 @@ $(() => {
         execCommand(command, params, (err, data)=>{
             console.log(err)
             getStatus();
+        });
+    });
+
+    $("#btn-connect").on('click', e => {
+        testConnection($('#inputHost').val(), $('#inputPort').val(), (err, data)=>{
+            if (err) 
+            {
+                alert(err);
+                return ;
+            }
+
+            alert(data.message);
         });
     });
 

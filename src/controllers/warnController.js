@@ -8,20 +8,57 @@ const execFile = promisify(require('child_process').execFile);
 const { unlinkSync, writeFileSync } = require('fs');
 const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils')
 
-async function execScript(command, arguments) {
-    let success = false;
+function testHostPortAccessibility(host, port, response) {
+	const socket = new Socket();
 
-    try {
-        output = await execFile(command, arguments);
-        if (!output.stderr) {
-            success = true;
+	socket.setTimeout(5000); // Set a timeout in milliseconds
+
+	socket.on('connect', () => {
+		const msg = `Sucesso ao conectar com o cliente ${host}:${port}`;
+		console.log(msg);
+		socket.destroy();
+		response.json(setOKResponse(msg));
+	});
+
+	socket.on('timeout', () => {
+		const msg = `Tempo de conexao com o cliente ${host}:${port} expirou. \nTente novamente mais tarde.`;
+		console.error(msg);
+		socket.destroy();
+		response.json(setErrorResponse(msg));
+	});
+
+	socket.on('error', (error) => {
+		const msg = `Erro ao conectar com o cliente ${host}:${port}: ${error.message}`;
+		console.error(msg);
+		socket.destroy();
+		response.json(setErrorResponse(msg));
+	});
+
+	socket.on('close', (hadError) => {
+		if (hadError) {
+			console.error(`Socket closed due to errors`);
+		} else {
+			console.log(`Socket closed gracefully`);
+		}
+	});
+
+	socket.connect(+port, host);
+}
+
+async function execScript(command, arguments) {
+	let success = false;
+
+	try {
+		output = await execFile(command, arguments);
+		if (!output.stderr) {
+			success = true;
 			console.log('success', output.stdout);
 		}
-		} catch (error) {
-        console.error(`Error: ${error.message}`);
-    }
+	} catch (error) {
+		console.error(`Error: ${error.message}`);
+	}
 
-    return success;
+	return success;
 }
 
 function testHostPortAccessibility(host, port) {
@@ -129,12 +166,12 @@ module.exports = {
 				`Favor pedir para algum desenvolvedor efetuar o copia base!\n` +
 				`Error message: ${error}`;
 			return res.json(setErrorResponse(messageError));
-		} 
+		}
 
 		return res.json(setOKResponse('Modbase criado e publicado com sucesso!'));
 	},
-
 	connect: async (req, res) => {
-		testHostPortAccessibility("localhost", 4001);
+		const { host, port } = req.body;
+		testHostPortAccessibility(host, new Number(port), res);
 	}
 }
