@@ -7,6 +7,53 @@ const execFile = promisify(require('child_process').execFile);
 
 const { unlinkSync, writeFileSync } = require('fs');
 const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils')
+// const { Client } = require('ssh2');
+
+// function executeCommandOnClient(host, port, user, pass, command, response) {
+// 	const conn = new Client();
+
+// 	const commands = {
+// 		update: 'LD_LIBRARY_PATH=/imobiliar/linux/lib /imobiliar/atualiza.sh -Pproxy',
+// 		blockupt: 'cd /imobiliar ; chmod a-x *tualiza[A,.]*sh ; chmod a-x shells/atualizabase.sh ',
+// 		unblockupt: 'cd /imobiliar ; chmod a+x *tualiza[A,.]*sh ; chmod a+x shells/atualizabase.sh ',
+// 		setreadonly: 'touch /imobiliar/imobiliar.modoleitura',
+// 		unsetreadonly: 'mv /imobiliar/imobiliar.modoleitura /imobiliar/imobiliar.modoleitura.bak',
+// 	}
+
+// 	const command2Execute = commands[command];
+
+// 	if (!command2Execute) {
+// 		const msg = `Command not found`;
+// 		console.log(msg);
+// 		response.json(setOKResponse(msg));
+// 		return;
+// 	}
+
+// 	conn.on('ready', () => {
+// 		console.log('Client :: ready');
+// 		conn.exec(command2Execute, (err, stream) => {
+// 			if (err) throw err;
+// 			stream.on('close', (code, signal) => {
+// 				console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+// 				conn.end();
+// 			}).on('data', (data) => {
+// 				const msg = `Command executed successfully`;
+// 				console.log(msg);
+// 				response.json(setOKResponse(msg));
+// 			}).stderr.on('data', (data) => {
+// 				console.log('STDERR: ' + data);
+// 				const msg = `Error to execute command: ${data}`;
+// 				console.log(msg);
+// 				response.json(setOKResponse(msg));
+// 			});
+// 		});
+// 	}).connect({
+// 		host,
+// 		port,
+// 		username: user,
+// 		password: pass
+// 	});
+// }
 
 function testHostPortAccessibility(host, port, response) {
 	const socket = new Socket();
@@ -143,5 +190,10 @@ module.exports = {
 		const { host, port } = req.body;
 		console.log('XXX', host, port)
 		testHostPortAccessibility(host, port, res);
+	},
+	executeOnClient: async (req, res) => {
+		const { host, port, username, password } = req.body;
+
+//		executeCommandOnClient(host, port, username, password, res);
 	}
 }
