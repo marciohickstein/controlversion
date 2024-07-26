@@ -6,54 +6,68 @@ const { promisify } = require('util');
 const execFile = promisify(require('child_process').execFile);
 
 const { unlinkSync, writeFileSync } = require('fs');
-const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils')
-// const { Client } = require('ssh2');
+const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils');
+const config = require('../config');
 
-// function executeCommandOnClient(host, port, user, pass, command, response) {
-// 	const conn = new Client();
+const { Client } = require('ssh2');
 
-// 	const commands = {
-// 		update: 'LD_LIBRARY_PATH=/imobiliar/linux/lib /imobiliar/atualiza.sh -Pproxy',
-// 		blockupt: 'cd /imobiliar ; chmod a-x *tualiza[A,.]*sh ; chmod a-x shells/atualizabase.sh ',
-// 		unblockupt: 'cd /imobiliar ; chmod a+x *tualiza[A,.]*sh ; chmod a+x shells/atualizabase.sh ',
-// 		setreadonly: 'touch /imobiliar/imobiliar.modoleitura',
-// 		unsetreadonly: 'mv /imobiliar/imobiliar.modoleitura /imobiliar/imobiliar.modoleitura.bak',
-// 	}
+function executeCommandOnClient(host, port, user, pass, command, response) {
+	const conn = new Client();
 
-// 	const command2Execute = commands[command];
+	const commands = {
+		update: 'LD_LIBRARY_PATH=/imobiliar/linux/lib /imobiliar/atualiza.sh -Pproxy',
+		blockupt: 'cd /imobiliar ; chmod a-x *tualiza[A,.]*sh ; chmod a-x shells/atualizabase.sh ',
+		unblockupt: 'cd /imobiliar ; chmod a+x *tualiza[A,.]*sh ; chmod a+x shells/atualizabase.sh ',
+		setreadonly: 'touch /imobiliar/imobiliar.modoleitura',
+		unsetreadonly: 'mv /imobiliar/imobiliar.modoleitura /imobiliar/imobiliar.modoleitura.bak',
+		chkreadonly: 'if [ $(ls -l /imobiliar/imobiliar.modoleitura 2> /dev/null | wc -l) = 1 ] ; then echo "SIM" ; else echo "NAO" ; fi',
+		chkblockupt: 'test -x /imobiliar/atualiza.sh && echo "Atualizacao habilitada" || echo "Atualizacao desabilitada"',
+	}
 
-// 	if (!command2Execute) {
-// 		const msg = `Command not found`;
-// 		console.log(msg);
-// 		response.json(setOKResponse(msg));
-// 		return;
-// 	}
+	const command2Execute = commands[command];
 
-// 	conn.on('ready', () => {
-// 		console.log('Client :: ready');
-// 		conn.exec(command2Execute, (err, stream) => {
-// 			if (err) throw err;
-// 			stream.on('close', (code, signal) => {
-// 				console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
-// 				conn.end();
-// 			}).on('data', (data) => {
-// 				const msg = `Command executed successfully`;
-// 				console.log(msg);
-// 				response.json(setOKResponse(msg));
-// 			}).stderr.on('data', (data) => {
-// 				console.log('STDERR: ' + data);
-// 				const msg = `Error to execute command: ${data}`;
-// 				console.log(msg);
-// 				response.json(setOKResponse(msg));
-// 			});
-// 		});
-// 	}).connect({
-// 		host,
-// 		port,
-// 		username: user,
-// 		password: pass
-// 	});
-// }
+	if (!command2Execute) {
+		const msg = `Command not found`;
+		console.log(msg);
+		response.json(setOKResponse(msg));
+		return;
+	}
+
+	//console.log(`Executing command on ${host}:${port} ${command2Execute} as ${user}@${pass}`)
+	try {
+		conn.on('ready', () => {
+			console.log('Client :: ready');
+			conn.exec(command2Execute, (err, stream) => {
+				if (err) throw err;
+				stream.on('close', (code, signal) => {
+					const msg = `Command executed successfully`;
+					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+					conn.end();
+				}).on('data', (data) => {
+					const msg = `Command executed successfully\nResponse:\n${data}`;
+					console.log(data.toString());
+					response.json(setOKResponse(msg));
+					conn.end();
+				}).stderr.on('data', (data) => {
+					console.log('STDERR: ' + data);
+					const msg = `Error to execute command: ${data}`;
+					console.log(msg);
+					response.json(setOKResponse(msg));
+				});
+			});
+		}).connect({
+			host,
+			port,
+			username: user,
+			password: pass
+		});
+	} catch (error) {
+		console.log('STDERR: ' + error);
+		const msg = `Error to execute command: ${error}`;
+		console.log(error);
+		response.json(setOKResponse(error));
+	}
+}
 
 function testHostPortAccessibility(host, port, response) {
 	const socket = new Socket();
@@ -170,15 +184,15 @@ module.exports = {
 			const currentDir = process.cwd();
 			process.chdir(process.env.DIR_MODBASE);
 
-			await execScript(`/home/svn/repositorio.sh`, [ `unlock` ]);
-			await execScript(`./copiabase.sh`, [ basename(`${fullPathNextModbaseDest}`) ]);
-			await execScript(`/home/svn/repositorio.sh`, [ `lock` ]);
-			
+			await execScript(`/home/svn/repositorio.sh`, [`unlock`]);
+			await execScript(`./copiabase.sh`, [basename(`${fullPathNextModbaseDest}`)]);
+			await execScript(`/home/svn/repositorio.sh`, [`lock`]);
+
 			process.chdir(currentDir);
 		} catch (error) {
-			const messageError = 
-				`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso, `+
-				`mas não foi possível publicar o mesmo com o programa copiabase.\n`+
+			const messageError =
+				`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso, ` +
+				`mas não foi possível publicar o mesmo com o programa copiabase.\n` +
 				`Favor pedir para algum desenvolvedor efetuar o copia base!\n` +
 				`Error message: ${error}`;
 			return res.json(setErrorResponse(messageError));
@@ -192,8 +206,8 @@ module.exports = {
 		testHostPortAccessibility(host, port, res);
 	},
 	executeOnClient: async (req, res) => {
-		const { host, port, username, password } = req.body;
-
-//		executeCommandOnClient(host, port, username, password, res);
+		const { host, port, command } = req.body;
+		console.log(config.app)
+		executeCommandOnClient(host.trim(), port, config.app.imobUser, config.app.imobPass, command, res);
 	}
 }

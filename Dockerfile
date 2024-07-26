@@ -1,6 +1,9 @@
-FROM node:14
+FROM node:20
 WORKDIR /usr/src/app
-COPY package*.json app.js ./
+COPY .env ./
+COPY client/ ./client/
+COPY src/ ./src/
+COPY package*.json server.js ./
 RUN npm install 
-EXPOSE 3000
-CMD ["node", "app.js"]
+EXPOSE 8001
+CMD [ "npm", "start" ]
