@@ -33,15 +33,15 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		return;
 	}
 
-	//console.log(`Executing command on ${host}:${port} ${command2Execute} as ${user}@${pass}`)
+	console.log(`Executing command on ${host}:${port} ${command2Execute} as ${user}`)
 	try {
 		conn.on('ready', () => {
-			console.log('Client :: ready');
+//			console.log('Client :: ready');
 			conn.exec(command2Execute, (err, stream) => {
 				if (err) throw err;
 				stream.on('close', (code, signal) => {
 					const msg = `Command executed successfully`;
-					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+//					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
 					conn.end();
 				}).on('data', (data) => {
 					const msg = `Command executed successfully\nResponse:\n${data}`;
@@ -207,7 +207,7 @@ module.exports = {
 	},
 	executeOnClient: async (req, res) => {
 		const { host, port, command } = req.body;
-		console.log(config.app)
-		executeCommandOnClient(host.trim(), port, config.app.imobUser, config.app.imobPass, command, res);
+		const password = atob(config.app.imobPass);
+		executeCommandOnClient(host.trim(), port, config.app.imobUser, password, command, res);
 	}
 }
