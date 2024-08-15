@@ -1,27 +1,30 @@
-const LOCKED   = "LOCKED";
+const LOCKED = "LOCKED";
 const UNLOCKED = "UNLOCKED";
-const CMDREPO  = "/home/svn/repositorio.sh"
+const CMDREPO = "/home/svn/repositorio.sh"
 
 const url = window.location.origin;
+const host = "192.168.1.2";
+//const host = "192.168.0.7";
+const port = 22;
 
 // Faz chamadas REST no servidor para buscar os dados
 function sendGetRest(url, callback) {
     console.log(`Enviando transação para o servidor: [GET] ${url}`);
     fetch(url)
-    .then((response) => {
-        if (response.status !== 200)
-            throw new Error(`${response.status} (${response.statusText})`);
-        response.json().then((data) => {
-            console.log(`Dados retornado da transação com o servidor: ${JSON.stringify(data)}`);
-            callback(null, data); 
+        .then((response) => {
+            if (response.status !== 200)
+                throw new Error(`${response.status} (${response.statusText})`);
+            response.json().then((data) => {
+                console.log(`Dados retornado da transação com o servidor: ${JSON.stringify(data)}`);
+                callback(null, data);
+            });
+        })
+        .catch(function (err) {
+            callback(err, null);
         });
-    })
-    .catch(function(err){ 
-        callback(err, null);
-    });
 }
 
-function sendHttpRest(path, method, data, callbackSuccess){
+function sendHttpRest(path, method, data, callbackSuccess) {
     let token = sessionStorage.getItem("token");
     $.ajax({
         url: `${url}/${path}`,
@@ -32,15 +35,15 @@ function sendHttpRest(path, method, data, callbackSuccess){
         headers: {
             'x-access-token': token ? token : ''
         },
-        beforeSend : function(){
+        beforeSend: function () {
             console.log(`Enviando transação para o servidor: [${method}] ${this.url}`);
         },
-        success: function(data){
+        success: function (data) {
             console.log(`Dados retornado da transação com o servidor: ${JSON.stringify(data)}`);
             if (callbackSuccess)
                 callbackSuccess(null, data);
         },
-        error: function(xhr, ajaxOptions, thrownError) {
+        error: function (xhr, ajaxOptions, thrownError) {
             console.log(`Ocorreu um erro na transação com o servidor: ${thrownError}`);
             if (callbackSuccess)
                 callbackSuccess(thrownError, null);
@@ -48,81 +51,105 @@ function sendHttpRest(path, method, data, callbackSuccess){
     });
 }
 
-function createWarning(data, callback){
+function createWarning(data, callback) {
     let url = `warn`;
     let paramData = { data };
 
     sendHttpRest(url, "POST", paramData, callback);
 }
 
-function testConnection(host, port, callback){
+function testConnection(host, port, callback) {
     let url = `connect`;
     let paramData = { host, port };
 
     if (!host) {
         alert(`Por favor entre com o endereco do cliente que deseja testar!`);
-        return ;
+        return;
     }
 
     if (!port) {
         alert(`Por favor entre com a porta do cliente que deseja testar!`);
-        return ;
+        return;
     }
 
-    
+
     sendHttpRest(url, "POST", paramData, callback);
 }
 
-function executeCommand(host, port, command, callback){
+function executeCommand(host, port, command, callback) {
     let url = `execute`;
-    let paramData = { host, port, command};
+    let paramData = { host, port, command };
 
     if (!host) {
         alert(`Por favor entre com o endereco do cliente que deseja testar!`);
-        return ;
+        return;
     }
 
     if (!port) {
         alert(`Por favor entre com a porta do cliente que deseja testar!`);
-        return ;
+        return;
     }
 
-    
+
     sendHttpRest(url, "POST", paramData, callback);
 }
 
-function getLog(file, tabLog){
+function getLog(file, tabLog) {
     let urlRest = `${url}/log?file=${file}`;
 
     sendGetRest(`${urlRest}`, function (error, data) {
-        if (error){
+        if (error) {
             tabLog.html('');
             // console.log(error);
-        }else{
+        } else {
             let dataLog = data && data.length > 0 ? data.replace(/\n/g, '<br>') : '';
             tabLog.html(dataLog);
             // console.log(data);
         }
-      });
+    });
 }
 
-function execCommand(command, params, callback){
+function execCommand(command, params, callback) {
     let url = `exec`;
     let data = { cmd: command, params: params };
 
     sendHttpRest(url, "POST", data, callback);
 }
 
-function getStatus(){
+// function getStatus(){
+//     let command = CMDREPO;
+//     let params = ["status"];
+//     execCommand(command, params, (err, data) => {
+//         let status = '';
+
+//         if (err){
+//             status = err;
+//         }else{
+//             status = (data.code === -2) ? data.stderr : data.stdout;
+//         }
+
+//         let switchButton = $('#switch1')[0];
+//         switchButton.checked = (status.trim() === LOCKED);
+//         $('#status').html(status);
+//     });
+// }
+
+function getStatus() {
     let command = CMDREPO;
-    let params = ["status"];
-    execCommand(command, params, (err, data) => {
+    let params = "checkrepo";
+    executeCommand(host, port, params, (err, data) => {
         let status = '';
 
-        if (err){
-            status = err;
-        }else{
-            status = (data.code === -2) ? data.stderr : data.stdout;
+        if (data.error) {
+            status = data.message;
+        } else {
+            if (data.message.indexOf(`\n${LOCKED}\n`) !== -1) {
+                status = LOCKED;
+            } else if (data.message.indexOf(`\n${UNLOCKED}\n`) !== -1) {
+                status = UNLOCKED;
+            } else {
+                status = data.message;
+            }
         }
 
         let switchButton = $('#switch1')[0];
@@ -134,8 +161,8 @@ function getStatus(){
 function normalize(str) {
     return str.toLowerCase().normalize("NFD").replace(/[^a-zA-Zs]/g, "");
 }
-    
-function getTabSelected(nav, log){
+
+function getTabSelected(nav, log) {
     if (!nav)
         nav = $("a[class='nav-link active']")[0];
     if (!log)
@@ -151,24 +178,39 @@ function getTabSelected(nav, log){
 }
 
 $(() => {
+    // $("#btn-toggle").on('click', e => {
+    //     let command = CMDREPO;
+    //     let status = $('#status').html();
+
+    //     let params = status.trim() === UNLOCKED ? ["lock"] : ["unlock"];
+
+    //     execCommand(command, params, (err, data)=>{
+    //         console.log(err)
+    //         getStatus();
+    //     });
+    // });
+
     $("#btn-toggle").on('click', e => {
-        let command = CMDREPO;
         let status = $('#status').html();
+        let params = status.trim() === UNLOCKED ? ["blockrepo"] : ["unblockrepo"];
+        const host = "192.168.0.7";
+        const port = 22;
 
-        let params = status.trim() === UNLOCKED ? ["lock"] : ["unlock"];
+        executeCommand(host, port, params, (err, data) => {
+            if (err) {
+                alert(err);
+                return;
+            }
 
-        execCommand(command, params, (err, data)=>{
-            console.log(err)
             getStatus();
         });
     });
 
     $("#btn-connect").on('click', e => {
-        testConnection($('#inputHost').val(), $('#inputPort').val(), (err, data)=>{
-            if (err) 
-            {
+        testConnection($('#inputHost').val(), $('#inputPort').val(), (err, data) => {
+            if (err) {
                 alert(err);
-                return ;
+                return;
             }
 
             alert(data.message);
@@ -176,17 +218,17 @@ $(() => {
     });
 
     $("#btn-execute").on('click', e => {
-        executeCommand($('#inputExecHost').val(), $('#inputExecPort').val(), $('#selectCommand').val(), (err, data)=>{
+        executeCommand($('#inputExecHost').val(), $('#inputExecPort').val(), $('#selectCommand').val(), (err, data) => {
             if (err) {
                 alert(err);
-                return ;
+                return;
             }
 
             alert(data.message);
         });
     });
 
-    
+
     $("#btn-warn").on('click', e => {
         let texto = $('#text-warn').val();
         let dateIni = $('#dtDateIni').val();
@@ -202,7 +244,7 @@ $(() => {
             dateEnd
         };
 
-        createWarning(data, (err, data)=>{
+        createWarning(data, (err, data) => {
             let message;
 
             if (err) {

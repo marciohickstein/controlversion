@@ -22,6 +22,9 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		unsetreadonly: 'mv /imobiliar/imobiliar.modoleitura /imobiliar/imobiliar.modoleitura.bak',
 		chkreadonly: 'if [ $(ls -l /imobiliar/imobiliar.modoleitura 2> /dev/null | wc -l) = 1 ] ; then echo "SIM" ; else echo "NAO" ; fi',
 		chkblockupt: 'test -x /imobiliar/atualiza.sh && echo "Atualizacao habilitada" || echo "Atualizacao desabilitada"',
+		checkrepo: '/home/geracao/srvDsv/Servidor/Desenv/mkcheck.sh',
+		blockrepo: '/home/geracao/srvDsv/Servidor/Desenv/mklock.sh',
+		unblockrepo: '/home/geracao/srvDsv/Servidor/Desenv/mkunlock.sh',
 	}
 
 	const command2Execute = commands[command];
@@ -38,6 +41,8 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		conn.on('ready', () => {
 //			console.log('Client :: ready');
 			conn.exec(command2Execute, (err, stream) => {
+
+				console.error(`ERROR`)
 				if (err) throw err;
 				stream.on('close', (code, signal) => {
 					const msg = `Command executed successfully`;
@@ -52,20 +57,25 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 					console.log('STDERR: ' + data);
 					const msg = `Error to execute command: ${data}`;
 					console.log(msg);
-					response.json(setOKResponse(msg));
+					response.json(setErrorResponse(msg));
 				});
 			});
+		}).on('error', (err) => {
+			const msg = `${err}`;
+			console.log(err.toString());
+			response.json(setErrorResponse(msg));
+			conn.end();
 		}).connect({
 			host,
 			port,
 			username: user,
 			password: pass
-		});
+		})
 	} catch (error) {
 		console.log('STDERR: ' + error);
 		const msg = `Error to execute command: ${error}`;
 		console.log(error);
-		response.json(setOKResponse(error));
+		response.json(setErrorResponse(error));
 	}
 }
 
@@ -208,6 +218,7 @@ module.exports = {
 	executeOnClient: async (req, res) => {
 		const { host, port, command } = req.body;
 		const password = atob(config.app.imobPass);
+
 		executeCommandOnClient(host.trim(), port, config.app.imobUser, password, command, res);
 	}
 }
