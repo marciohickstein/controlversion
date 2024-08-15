@@ -3,8 +3,7 @@ const UNLOCKED = "UNLOCKED";
 const CMDREPO = "/home/svn/repositorio.sh"
 
 const url = window.location.origin;
-const host = "192.168.1.2";
-//const host = "192.168.0.7";
+const host = "192.168.0.7";
 const port = 22;
 
 // Faz chamadas REST no servidor para buscar os dados
