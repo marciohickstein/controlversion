@@ -1,144 +1,207 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Geração de Versão</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
-    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <style>
-        h1 {
-            font-family: 'Open Sans', cursive;
-        }
-
-        body {
-            font-family: 'Open Sans', cursive;
-        }
-
-        .tab-pane {
-            font-family: 'Share Tech Mono', monospace;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
-
 <body>
-
-    <div class="container">
-        <div class="row">
-            <div class="bg2 col-8">
-                <h1 class="display-4 text-left mt-4">Geração de Versão</h1>
-            </div>
-            <div class="bg2 col-4">
-                <img src="./assets/images/logo.png" alt="Logotipo Imobiliar" width="90%" height="90%">
+    <!-- Header -->
+    <header class="panel-header">
+        <div class="header-content">
+            <h1 class="header-title">Controle de Versão</h1>
+            <div class="header-actions">
+                <div class="header-logo">
+                    <img src="https://imobiliar.com.br/wp-content/uploads/2024/11/Logo-Imobiliar.svg" alt="Imobiliar Logo">
+                </div>
+                <button id="btn-logout" class="btn btn-logout" onclick="logout()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Sair
+                </button>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container container2" style="min-height: 290px">
-
-        <div class="row">
-            <div class="col-4 pt-3">
-                <p class="lead font-weight-bold text-truncate">Repositório</p>
-            </div>
-            <div class="col-6 pt-3 font-weight-bold">
-                <p id="status" class="lead font-weight-bold text-truncate"></p>
-            </div>
-            <div class="col-2 pt-4 text-center">
-                <div class="custom-control custom-switch" id="btn-toggle">
-                    <input type="checkbox" class="custom-control-input" id="switch1">
-                    <label class="custom-control-label" for="switch1"></label>
+    <!-- Main Content -->
+    <main class="panel-container">
+        <!-- Repository Status Card -->
+        <div class="card">
+            <h2 class="card-title">Status do Repositório</h2>
+            <div class="form-row">
+                <div class="form-group-inline" style="flex: 2;">
+                    <label>Status Atual</label>
+                    <div id="status" class="status-badge">Carregando...</div>
+                </div>
+                <div class="form-group-inline" style="flex: 0; min-width: auto;">
+                    <label>Bloqueio</label>
+                    <label class="custom-switch" id="btn-toggle">
+                        <input type="checkbox" id="switch1">
+                        <span class="slider"></span>
+                    </label>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-4 pt-3">
-                <p class="lead font-weight-bold text-truncate">Aviso Geral</p>
-            </div>
-            <div class="col-6 pt-3 font-weight-bold">
-                <label for="dtDateIni">De:</label>
-                <input type="datetime-local" id="dtDateIni" name="dtDateIni" style="max-width: 180px">
-                <label for="dtDateEnd">At&eacute;:</label>
-                <input type="datetime-local" id="dtDateEnd" name="dtDateEnd" style="max-width: 180px">
-                <textarea class="col-12 pt-3 font-weight-bold" rows="5" id="text-warn"></textarea>
-            </div>
-            <div class="col-2 pt-4 text-center">
-                <button id="btn-warn" class="btn btn-danger">Gerar</button>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-6 pt-3">
-                <label>Endereco:</label>
-                <input type="text" id="inputHost" name="inputHost" style="width: 380px">
-            </div>
-            <div class="col-4 pt-3">
-                <label for="switch1">Porta:</label>
-                <input type="number" id="inputPort" name="inputPort" style="max-width: 180px">
-            </div>
-            <div class="col-2 pt-4 text-center">
-                <button id="btn-connect" class="btn btn-danger">Testar Conexão</button>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-6 pt-3">
-                <label>Endereco:</label>
-                <input type="text" id="inputExecHost" name="inputExecHost" style="width: 240px">
-                <label for="switch1">Porta:</label>
-                <input type="number" id="inputExecPort" name="inputExecPort" style="max-width: 140px">
-            </div>
-            <div class="col-4 pt-3">
-                <select class="form-control" id="selectCommand" style="max-width: 300px;" name="" id="target">
-                    <option value="update">Atualizar Imobiliar</option>
-                    <option value="blockupt">Bloquear Atualização</option>
-                    <option value="unblockupt">Desbloquear Atualização</option>
-                    <option value="setreadonly">Ativar Modo Consulta</option>
-                    <option value="unsetreadonly">Desativar Modo Consulta</option>
-                    <option value="chkreadonly">Modo Consulta Ativo?</option>
-                    <option value="chkblockupt">Atualizacao Habilitada?</option>
-                </select>
-            </div>
-            <div class="col-2 pt-4 text-center">
-                <button id="btn-execute" class="btn btn-danger">Executar</button>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col d-flex text-center justify-content-between">
-                <select class="form-control" style="max-width: 200px;" name="" id="target">
-                    <option value="prod">Produção</option>
-                    <option value="desenv">Desenvolvimento</option>
-                </select>
-                <a class="ml-3" href="http://www.inetsoft.com.br/area-cliente/changelog.html" target="_blank"
-                    rel="noopener noreferrer">Ver correções da última release</a>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col">
-                <div class="nav nav-tabs mt-3 ">
-                    <a href="#log1" id="nav1" class="nav-link active" data-toggle="tab">Servidor</a>
-                    <a href="#log2" id="nav2" class="nav-link" data-toggle="tab">Cliente</a>
-                    <a href="#log3" id="nav3" class="nav-link" data-toggle="tab">Web</a>
-                    <a href="#log4" id="nav4" class="nav-link" data-toggle="tab">Publicação</a>
+        <!-- Warning Card -->
+        <div class="card">
+            <h2 class="card-title">Aviso Geral</h2>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label for="dtDateIni">Data Início</label>
+                    <input type="text" id="dtDateIni" name="dtDateIni" class="form-control datetime-picker" placeholder="dd/mm/aaaa hh:mm">
                 </div>
-
-                <div class="tab-content p-3" style="min-height: 600px;max-height: 600px;overflow: scroll;">
-                    <div class="tab-pane active" id="log1"></div>
-                    <div class="tab-pane" id="log2"></div>
-                    <div class="tab-pane" id="log3"></div>
-                    <div class="tab-pane" id="log4"></div>
+                <div class="form-group-inline">
+                    <label for="dtDateEnd">Data Fim</label>
+                    <input type="text" id="dtDateEnd" name="dtDateEnd" class="form-control datetime-picker" placeholder="dd/mm/aaaa hh:mm">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline" style="flex: 3;">
+                    <label for="text-warn">Mensagem do Aviso</label>
+                    <textarea id="text-warn" class="form-control" rows="3" placeholder="Digite a mensagem do aviso..."></textarea>
+                </div>
+                <div class="form-group-inline" style="flex: 0; min-width: auto;">
+                    <button id="btn-warn" class="btn btn-danger">Gerar Aviso</button>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Connection Test Card -->
+        <div class="card">
+            <h2 class="card-title">Teste de Conexão</h2>
+            <div class="form-row">
+                <div class="form-group-inline" style="flex: 2;">
+                    <label for="inputHost">Endereço</label>
+                    <input type="text" id="inputHost" name="inputHost" class="form-control" placeholder="192.168.0.1">
+                </div>
+                <div class="form-group-inline">
+                    <label for="inputPort">Porta</label>
+                    <input type="number" id="inputPort" name="inputPort" class="form-control" placeholder="22">
+                </div>
+                <div class="form-group-inline" style="flex: 0; min-width: auto;">
+                    <button id="btn-connect" class="btn btn-primary">Testar Conexão</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execute Command Card -->
+        <!-- <div class="card">
+            <h2 class="card-title">Executar Comando</h2>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label for="inputExecHost">Endereço</label>
+                    <input type="text" id="inputExecHost" name="inputExecHost" class="form-control" placeholder="192.168.0.1">
+                </div>
+                <div class="form-group-inline" style="flex: 0.5;">
+                    <label for="inputExecPort">Porta</label>
+                    <input type="number" id="inputExecPort" name="inputExecPort" class="form-control" placeholder="22">
+                </div>
+                <div class="form-group-inline" style="flex: 1.5;">
+                    <label for="selectCommand">Comando</label>
+                    <select id="selectCommand" class="form-control">
+                        <option value="update">Atualizar Imobiliar</option>
+                        <option value="blockupt">Bloquear Atualização</option>
+                        <option value="unblockupt">Desbloquear Atualização</option>
+                        <option value="setreadonly">Ativar Modo Consulta</option>
+                        <option value="unsetreadonly">Desativar Modo Consulta</option>
+                        <option value="chkreadonly">Modo Consulta Ativo?</option>
+                        <option value="chkblockupt">Atualização Habilitada?</option>
+                    </select>
+                </div>
+                <div class="form-group-inline" style="flex: 0; min-width: auto;">
+                    <button id="btn-execute" class="btn btn-danger">Executar</button>
+                </div>
+            </div>
+        </div> -->
+
+        <!-- Logs Card -->
+        <div class="card">
+            <h2 class="card-title">Logs do Sistema</h2>
+            <div class="form-row" style="margin-bottom: 20px;">
+                <div class="form-group-inline" style="flex: 0; min-width: 200px;">
+                    <label for="target">Ambiente</label>
+                    <select id="target" class="form-control">
+                        <option value="prod">Produção</option>
+                        <option value="desenv">Desenvolvimento</option>
+                    </select>
+                </div>
+                <div class="form-group-inline" style="flex: 1; display: flex; align-items: flex-end;">
+                    <a class="changelog-link" href="http://www.inetsoft.com.br/area-cliente/changelog.html" target="_blank" rel="noopener noreferrer">
+                        Ver correções da última release
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="nav-tabs-custom">
+                <a href="#log1" id="nav1" class="nav-link active" data-toggle="tab">Servidor</a>
+                <a href="#log2" id="nav2" class="nav-link" data-toggle="tab">Cliente</a>
+                <a href="#log3" id="nav3" class="nav-link" data-toggle="tab">Web</a>
+                <a href="#log4" id="nav4" class="nav-link" data-toggle="tab">Publicação</a>
+            </div>
+
+            <div class="tab-content">
+                <div class="tab-pane active" id="log1"></div>
+                <div class="tab-pane" id="log2" style="display: none;"></div>
+                <div class="tab-pane" id="log3" style="display: none;"></div>
+                <div class="tab-pane" id="log4" style="display: none;"></div>
+            </div>
+        </div>
+    </main>
 
     <script src="../node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+    <script>
+        // Initialize Brazilian datetime pickers
+        flatpickr(".datetime-picker", {
+            enableTime: true,
+            dateFormat: "d/m/Y H:i",
+            time_24hr: true,
+            locale: "pt"
+        });
+
+        // Logout function
+        function logout() {
+            sessionStorage.removeItem("token");
+            window.location.replace(window.location.origin);
+        }
+
+        // Check authentication
+        if (!sessionStorage.getItem("token")) {
+            window.location.replace(window.location.origin);
+        }
+
+        // Tab functionality
+        document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Remove active from all tabs
+                document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => {
+                    p.classList.remove('active');
+                    p.style.display = 'none';
+                });
+
+                // Add active to clicked tab
+                this.classList.add('active');
+                const targetId = this.getAttribute('href').substring(1);
+                const targetPane = document.getElementById(targetId);
+                targetPane.classList.add('active');
+                targetPane.style.display = 'block';
+            });
+        });
+    </script>
     <script src="assets/js/script.js"></script>
 </body>
 </html>
