@@ -5,9 +5,9 @@ const logger = require('../logger');
 const { checkUser, USER_VALID, USER_INVALID, USER_NOTSEND } = require('../utils');
 
 module.exports = {
-	login: (req, res) => {
+	login: async (req, res) => {
 		const { user, passwd } = req.body;
-		let ret = checkUser(user, passwd);
+		let ret = await checkUser(user, passwd);
 		let response = {};
 
 		if (ret === USER_NOTSEND) {

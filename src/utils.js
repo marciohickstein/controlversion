@@ -1,9 +1,24 @@
 const { readdirSync } = require('fs');
+const { scrypt, timingSafeEqual } = require('crypto');
+const { promisify } = require('util');
 const logger = require('./logger');
 
+const scryptAsync = promisify(scrypt);
+const KEY_LENGTH = 64;
+
+// As senhas nao ficam no fonte: guarda-se salt + hash scrypt.
+// Para cadastrar ou trocar uma senha: node tools/hash-senha.js '<senha>'
 const users = [
-    { id: 1, username: 'suporte', password: 'sup@rte4' },
-    { id: 2, username: 'geracao', password: '!m@biliar' }
+    {
+        id: 1, username: 'suporte',
+        salt: 'c28754d41c14de347b2fe8f07de5ef4c',
+        hash: '3de6a1867f1efdf3239c9448aa331148e864fbd1a04209c371df5a0a583ce0c19fe5cdcaf361cd35f43e27dff20eb8a8716fc4ddd6a1e36e0ed5dafba6b9dd12'
+    },
+    {
+        id: 2, username: 'geracao',
+        salt: '424730ef91adf9e4f467eeff052ca5d8',
+        hash: '05b8516ac32b49871cd82f837b948f976340e0447898894585abe53f6b61779e044a90cbbb1c7dda0a6a8c0eed5e5401965ed923024dc3deced81d714e9e4620'
+    }
 ]
 
 const USER_VALID = 0;
@@ -50,18 +65,20 @@ const getNextModbase = () => {
     return modbase;
 }
 
-function checkUser(user, passwd) {
+async function checkUser(user, passwd) {
     if (!user || !passwd) {
         return USER_NOTSEND; // Faltou usuario ou senha
     }
 
-    // Valida senha hardcode
-    for (const userList of users) {
-        if (userList.username === user && userList.password === passwd)
-            return USER_VALID;
-    }
+    const registro = users.find((cadastrado) => cadastrado.username === user);
 
-    return USER_INVALID;
+    // Mesmo sem usuario correspondente o hash e calculado, usando um registro de
+    // referencia: assim o tempo de resposta nao denuncia quais usuarios existem.
+    const alvo = registro || users[0];
+    const calculado = await scryptAsync(passwd, alvo.salt, KEY_LENGTH);
+    const confere = timingSafeEqual(calculado, Buffer.from(alvo.hash, 'hex'));
+
+    return (registro && confere) ? USER_VALID : USER_INVALID;
 }
 
 function pad(n) {
