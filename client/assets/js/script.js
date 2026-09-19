@@ -132,6 +132,14 @@ function travarSwitch(travado) {
     $('#switch1').prop('disabled', travado);
 }
 
+// Pinta o status conforme o estado, em vez de deixar tudo como texto neutro.
+function mostrarStatus(texto, estado) {
+    $('#status')
+        .removeClass('locked unlocked erro carregando')
+        .addClass(estado)
+        .text(texto);
+}
+
 function getStatus(callback) {
     let params = "checkrepo";
     const concluir = () => { if (callback) callback(); };
@@ -141,7 +149,7 @@ function getStatus(callback) {
 
         if (err || !data) {
             console.log(err);
-            $('#status').html('Não foi possível consultar o status do repositório. Verifique sua conexão e tente novamente.');
+            mostrarStatus('Não foi possível consultar o status do repositório. Verifique sua conexão e tente novamente.', 'erro');
             concluir();
             return;
         }
@@ -158,9 +166,17 @@ function getStatus(callback) {
             }
         }
 
+        const estadoAtual = status.trim();
         let switchButton = $('#switch1')[0];
-        switchButton.checked = (status.trim() === LOCKED);
-        $('#status').html(status);
+        switchButton.checked = (estadoAtual === LOCKED);
+
+        if (estadoAtual === LOCKED)
+            mostrarStatus('Bloqueado', 'locked');
+        else if (estadoAtual === UNLOCKED)
+            mostrarStatus('Liberado', 'unlocked');
+        else
+            mostrarStatus(status, 'erro');
+
         concluir();
     });
 }
@@ -215,6 +231,7 @@ $(() => {
         let params = status.trim() === UNLOCKED ? "blockrepo" : "unblockrepo";
 
         travarSwitch(true);
+        mostrarStatus(params === "blockrepo" ? 'Bloqueando...' : 'Liberando...', 'carregando');
 
         executeCommand(params, (err, data) => {
             if (err)
@@ -301,6 +318,7 @@ $(() => {
     })
 
     travarSwitch(true);
+    mostrarStatus('Consultando...', 'carregando');
     getStatus(() => travarSwitch(false));
     getLog('servidor.log', $('#log1'));
     updateReleaseLink();
