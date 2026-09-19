@@ -195,7 +195,10 @@ $(() => {
     //     });
     // });
 
-    $("#btn-toggle").on('click', e => {
+    // O handler fica no checkbox, nao no label que o envolve: um clique no label
+    // dispara dois eventos 'click' (o do label e o do input que volta borbulhando),
+    // o que disparava o comando duas vezes no servidor.
+    $("#switch1").on('change', e => {
         let status = $('#status').html();
         let params = status.trim() === UNLOCKED ? "blockrepo" : "unblockrepo";
 
