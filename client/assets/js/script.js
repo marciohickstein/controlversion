@@ -128,6 +128,11 @@ function execCommand(command, params, callback) {
 
 // Enquanto o SSH nao confirma, o switch fica travado: um segundo clique abriria
 // outra conexao antes de a primeira responder.
+// Estado real do repositorio (LOCKED, UNLOCKED ou null quando desconhecido).
+// Fica separado do texto exibido: a tela mostra "Bloqueado"/"Liberado", e ler
+// o rotulo para decidir o comando quebra assim que a traducao muda.
+let estadoRepositorio = null;
+
 function travarSwitch(travado) {
     $('#switch1').prop('disabled', travado);
 }
@@ -149,6 +154,7 @@ function getStatus(callback) {
 
         if (err || !data) {
             console.log(err);
+            estadoRepositorio = null;
             mostrarStatus('Não foi possível consultar o status do repositório. Verifique sua conexão e tente novamente.', 'erro');
             concluir();
             return;
@@ -170,12 +176,16 @@ function getStatus(callback) {
         let switchButton = $('#switch1')[0];
         switchButton.checked = (estadoAtual === LOCKED);
 
-        if (estadoAtual === LOCKED)
+        if (estadoAtual === LOCKED) {
+            estadoRepositorio = LOCKED;
             mostrarStatus('Bloqueado', 'locked');
-        else if (estadoAtual === UNLOCKED)
+        } else if (estadoAtual === UNLOCKED) {
+            estadoRepositorio = UNLOCKED;
             mostrarStatus('Liberado', 'unlocked');
-        else
+        } else {
+            estadoRepositorio = null;
             mostrarStatus(status, 'erro');
+        }
 
         concluir();
     });
@@ -227,8 +237,17 @@ $(() => {
     // dispara dois eventos 'click' (o do label e o do input que volta borbulhando),
     // o que disparava o comando duas vezes no servidor.
     $("#switch1").on('change', e => {
-        let status = $('#status').html();
-        let params = status.trim() === UNLOCKED ? "blockrepo" : "unblockrepo";
+        // Sem estado confirmado nao se envia comando: agir no escuro poderia
+        // desbloquear um repositorio que na verdade esta bloqueado.
+        if (estadoRepositorio === null) {
+            alert('O status do repositório ainda não foi confirmado. Tentando consultar novamente...');
+            travarSwitch(true);
+            mostrarStatus('Consultando...', 'carregando');
+            getStatus(() => travarSwitch(false));
+            return;
+        }
+
+        let params = estadoRepositorio === UNLOCKED ? "blockrepo" : "unblockrepo";
 
         travarSwitch(true);
         mostrarStatus(params === "blockrepo" ? 'Bloqueando...' : 'Liberando...', 'carregando');
