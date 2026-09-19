@@ -51,6 +51,20 @@ function pareceTexto(valor) {
 function executeCommandOnClient(host, port, user, pass, command, response) {
 	const conn = new Client();
 
+	let respondido = false;
+	let saida = '';
+	let saidaErro = '';
+
+	// O ssh2 emite mais de um evento para a mesma conexao (um ECONNRESET seguido de
+	// "Connection lost before handshake", stdout junto de stderr, etc). Sem esta
+	// trava a segunda resposta estoura ERR_HTTP_HEADERS_SENT e derruba o processo.
+	function responder(payload) {
+		if (respondido) return;
+
+		respondido = true;
+		response.json(payload);
+	}
+
 	const commands = {
 		update: 'LD_LIBRARY_PATH=/imobiliar/linux/lib /imobiliar/atualiza.sh -Pproxy',
 		blockupt: 'cd /imobiliar ; chmod a-x *tualiza[A,.]*sh ; chmod a-x shells/atualizabase.sh ',
@@ -69,7 +83,7 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 	if (!command2Execute) {
 		const msg = `Command not found`;
 		logger.warn(`Comando desconhecido solicitado: "${command}"`);
-		response.json(setOKResponse(msg));
+		responder(setOKResponse(msg));
 		return;
 	}
 
@@ -78,27 +92,40 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 	logger.info(`Executando via SSH: ssh -p ${port} ${user}@${host} '${command2Execute}'`);
 	try {
 		conn.on('ready', () => {
-//			console.log('Client :: ready');
 			conn.exec(command2Execute, (err, stream) => {
-				if (err) throw err;
-				stream.on('close', (code, signal) => {
-					const msg = `Command executed successfully`;
-//					console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+				// Um throw aqui escaparia do try/catch abaixo, que so cobre a
+				// chamada sincrona, e viraria excecao nao tratada.
+				if (err) {
+					logger.error(`Falha ao abrir o canal de execucao em ${host}:${port}`, err);
+					responder(setErrorResponse(friendlyConnectionError(err, host, port)));
+					conn.end();
+					return;
+				}
+
+				// A saida e acumulada e respondida no fechamento do stream: responder
+				// no primeiro 'data' truncava comandos que escrevem em varios pedacos.
+				stream.on('close', (code) => {
+					if (saidaErro && !saida) {
+						logger.error(`Erro retornado por ${host} ao executar o comando: ${saidaErro.trim()}`);
+						responder(setErrorResponse(`Error to execute command: ${saidaErro}`));
+					} else {
+						if (saidaErro)
+							logger.warn(`${host} escreveu em stderr mas o comando produziu saida: ${saidaErro.trim()}`);
+
+						logger.debug(`Saida de ${host} (codigo ${code}): ${saida.trim()}`);
+						responder(setOKResponse(`Command executed successfully\nResponse:\n${saida}`));
+					}
+
 					conn.end();
 				}).on('data', (data) => {
-					const msg = `Command executed successfully\nResponse:\n${data}`;
-					logger.debug(`Saida de ${host}: ${data.toString().trim()}`);
-					response.json(setOKResponse(msg));
-					conn.end();
+					saida += data;
 				}).stderr.on('data', (data) => {
-					const msg = `Error to execute command: ${data}`;
-					logger.error(`Erro retornado por ${host} ao executar o comando: ${data.toString().trim()}`);
-					response.json(setErrorResponse(msg));
+					saidaErro += data;
 				});
 			});
 		}).on('error', (err) => {
 			logger.error(`Falha de conexao com ${host}:${port}`, err);
-			response.json(setErrorResponse(friendlyConnectionError(err, host, port)));
+			responder(setErrorResponse(friendlyConnectionError(err, host, port)));
 			conn.end();
 		}).connect({
 			host,
@@ -108,12 +135,23 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		})
 	} catch (error) {
 		logger.error(`Falha ao executar o comando em ${host}:${port}`, error);
-		response.json(setErrorResponse(friendlyConnectionError(error, host, port)));
+		responder(setErrorResponse(friendlyConnectionError(error, host, port)));
 	}
 }
 
 function testHostPortAccessibility(host, port, response) {
 	const socket = new Socket();
+
+	let respondido = false;
+
+	// Mesma protecao do executeCommandOnClient: um timeout seguido de erro no
+	// mesmo socket responderia duas vezes e derrubaria a aplicacao.
+	function responder(payload) {
+		if (respondido) return;
+
+		respondido = true;
+		response.json(payload);
+	}
 
 	socket.setTimeout(5000); // Set a timeout in milliseconds
 
@@ -121,19 +159,19 @@ function testHostPortAccessibility(host, port, response) {
 		const msg = `Sucesso ao conectar com o cliente ${host}:${port}`;
 		logger.info(msg);
 		socket.destroy();
-		response.json(setOKResponse(msg));
+		responder(setOKResponse(msg));
 	});
 
 	socket.on('timeout', () => {
 		logger.error(`Timeout ao conectar em ${host}:${port}`);
 		socket.destroy();
-		response.json(setErrorResponse(`O servidor ${host} não respondeu na porta ${port}. Verifique se ele está ligado e acessível na rede.`));
+		responder(setErrorResponse(`O servidor ${host} não respondeu na porta ${port}. Verifique se ele está ligado e acessível na rede.`));
 	});
 
 	socket.on('error', (error) => {
 		logger.error(`Erro ao conectar em ${host}:${port}: ${error.message}`);
 		socket.destroy();
-		response.json(setErrorResponse(friendlyConnectionError(error, host, port)));
+		responder(setErrorResponse(friendlyConnectionError(error, host, port)));
 	});
 
 	socket.on('close', (hadError) => {
