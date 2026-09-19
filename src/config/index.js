@@ -17,6 +17,10 @@ module.exports = {
 		dirAppLog: process.env.DIR_APP_LOG || './logs',
 		logLevel: process.env.LOG_LEVEL || 'info',
 		logRetentionDays: Number(process.env.LOG_RETENTION_DAYS || 7),
+		// Servidor e scripts que controlam o bloqueio do repositorio
+		repoHost: process.env.REPO_HOST,
+		repoPort: Number(process.env.REPO_PORT || 22),
+		repoScriptDir: (process.env.REPO_SCRIPT_DIR || '').replace(/\/+$/, ''),
 		imobUser: process.env.IMOBUSER,
 		imobPass: process.env.IMOBPASS,
 	}

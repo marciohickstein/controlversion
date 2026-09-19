@@ -49,9 +49,9 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		unsetreadonly: 'mv /imobiliar/imobiliar.modoleitura /imobiliar/imobiliar.modoleitura.bak',
 		chkreadonly: 'if [ $(ls -l /imobiliar/imobiliar.modoleitura 2> /dev/null | wc -l) = 1 ] ; then echo "SIM" ; else echo "NAO" ; fi',
 		chkblockupt: 'test -x /imobiliar/atualiza.sh && echo "Atualizacao habilitada" || echo "Atualizacao desabilitada"',
-		checkrepo: '/home/geracao/srvDsv/Servidor/Desenv/mkcheck.sh',
-		blockrepo: '/home/geracao/srvDsv/Servidor/Desenv/mklock.sh',
-		unblockrepo: '/home/geracao/srvDsv/Servidor/Desenv/mkunlock.sh',
+		checkrepo: `${config.app.repoScriptDir}/mkcheck.sh`,
+		blockrepo: `${config.app.repoScriptDir}/mklock.sh`,
+		unblockrepo: `${config.app.repoScriptDir}/mkunlock.sh`,
 	}
 
 	const command2Execute = commands[command];
@@ -233,7 +233,20 @@ module.exports = {
 		testHostPortAccessibility(host, port, res);
 	},
 	executeOnClient: async (req, res) => {
-		const { host, port, command } = req.body;
+		const { command } = req.body;
+		// O endereco do servidor de repositorio e do servidor, nao do cliente.
+		const host = config.app.repoHost;
+		const port = config.app.repoPort;
+
+		if (!host) {
+			logger.error('REPO_HOST nao configurada no .env');
+			return res.json(setErrorResponse('Servidor de repositorio nao configurado. Defina REPO_HOST no .env.'));
+		}
+
+		if (!config.app.repoScriptDir) {
+			logger.error('REPO_SCRIPT_DIR nao configurada no .env');
+			return res.json(setErrorResponse('Diretorio dos scripts nao configurado. Defina REPO_SCRIPT_DIR no .env.'));
+		}
 
 		let password;
 		try {

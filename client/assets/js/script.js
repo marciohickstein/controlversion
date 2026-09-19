@@ -3,8 +3,6 @@ const UNLOCKED = "UNLOCKED";
 const CMDREPO = "/home/svn/repositorio.sh"
 
 const url = window.location.origin;
-const host = "192.168.0.7";
-const port = 22;
 
 // Faz chamadas REST no servidor para buscar os dados
 function sendGetRest(url, callback) {
@@ -75,20 +73,11 @@ function testConnection(host, port, callback) {
     sendHttpRest(url, "POST", paramData, callback);
 }
 
-function executeCommand(host, port, command, callback) {
+// O endereco e a porta do servidor de repositorio ficam no .env da aplicacao
+// (REPO_HOST/REPO_PORT), por isso nao sao enviados pelo cliente.
+function executeCommand(command, callback) {
     let url = `execute`;
-    let paramData = { host, port, command };
-
-    if (!host) {
-        alert(`Por favor entre com o endereco do cliente que deseja testar!`);
-        return;
-    }
-
-    if (!port) {
-        alert(`Por favor entre com a porta do cliente que deseja testar!`);
-        return;
-    }
-
+    let paramData = { command };
 
     sendHttpRest(url, "POST", paramData, callback);
 }
@@ -136,7 +125,7 @@ function execCommand(command, params, callback) {
 function getStatus() {
     let command = CMDREPO;
     let params = "checkrepo";
-    executeCommand(host, port, params, (err, data) => {
+    executeCommand(params, (err, data) => {
         let status = '';
 
         if (err || !data) {
@@ -197,11 +186,9 @@ $(() => {
 
     $("#btn-toggle").on('click', e => {
         let status = $('#status').html();
-        let params = status.trim() === UNLOCKED ? ["blockrepo"] : ["unblockrepo"];
-        const host = "192.168.0.7";
-        const port = 22;
+        let params = status.trim() === UNLOCKED ? "blockrepo" : "unblockrepo";
 
-        executeCommand(host, port, params, (err, data) => {
+        executeCommand(params, (err, data) => {
             if (err) {
                 alert(err);
                 return;
@@ -223,7 +210,7 @@ $(() => {
     });
 
     $("#btn-execute").on('click', e => {
-        executeCommand($('#inputExecHost').val(), $('#inputExecPort').val(), $('#selectCommand').val(), (err, data) => {
+        executeCommand($('#selectCommand').val(), (err, data) => {
             if (err) {
                 alert(err);
                 return;

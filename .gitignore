@@ -4,3 +4,4 @@ versao/
 logs/
 modbase/
 .env
+scripts/repo.state
