@@ -153,13 +153,14 @@ function getStatus() {
     });
 }
 
-// O link das correcoes aponta para paginas diferentes conforme o ambiente:
-// desenvolvimento lista tambem as novas funcionalidades.
+// O link acompanha o ambiente: producao mostra as correcoes da release,
+// desenvolvimento mostra tambem as novas funcionalidades.
 function updateReleaseLink() {
-    const target = $('#target').val();
-    const link = target === "desenv" ? `${URL_RELEASE}?newfeatures=sim` : URL_RELEASE;
+    const desenv = $('#target').val() === "desenv";
 
-    $('#link-changelog').attr('href', link);
+    $('#link-changelog')
+        .attr('href', desenv ? `${URL_RELEASE}?newfeatures=sim` : URL_RELEASE)
+        .text(desenv ? "Ver Melhorias" : "Ver Correções");
 }
 
 function normalize(str) {
