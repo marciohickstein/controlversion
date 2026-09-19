@@ -16,14 +16,14 @@ module.exports = {
 			res.json(response);
 		}
 
-		file = `${config.app.dirLog}${file}`;
+		file = `${config.app.dirVersao}${file}`;
 		timestamp = getDateFormatted();
 		contentData = `${timestamp}: ${data}\n`;
 		let buffer = Buffer.from(contentData);
 
-		fs.exists(config.app.dirLog, (found) => {
+		fs.exists(config.app.dirVersao, (found) => {
 			if (!found)
-				fs.mkdirSync(config.app.dirLog, '0777', true);
+				fs.mkdirSync(config.app.dirVersao, '0777', true);
 
 
 			prependFile(file, contentData, (err) => {
@@ -57,7 +57,7 @@ module.exports = {
 		}
 
 		filename = path.basename(file);
-		file = `${config.app.dirLog}${filename}`;
+		file = `${config.app.dirVersao}${filename}`;
 		fs.readFile(file, (err, data) => {
 			let fileData = err ? { error: err.message } : data.toString();
 

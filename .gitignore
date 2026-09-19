@@ -1,6 +1,6 @@
 node_modules/
 package-lock.json
-log/
+versao/
 logs/
 modbase/
 .env

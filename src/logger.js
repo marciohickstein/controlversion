@@ -4,7 +4,7 @@ const config = require('./config');
 
 // Logger de diagnostico da aplicacao.
 // ATENCAO: grava em config.app.dirAppLog (./logs por padrao), que e diferente
-// de config.app.dirLog (./log), onde ficam os arquivos de log exibidos no painel.
+// de config.app.dirVersao (./versao), onde ficam os arquivos exibidos no painel.
 
 const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
 const FILE_PATTERN = /^app-\d{4}-\d{2}-\d{2}\.log$/;
