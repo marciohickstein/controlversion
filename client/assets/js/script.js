@@ -1,6 +1,7 @@
 const LOCKED = "LOCKED";
 const UNLOCKED = "UNLOCKED";
 const CMDREPO = "/home/svn/repositorio.sh"
+const URL_RELEASE = "http://www.inetsoft.com.br/area-cliente/bugs_newfeatures.html";
 
 const url = window.location.origin;
 
@@ -152,6 +153,15 @@ function getStatus() {
     });
 }
 
+// O link das correcoes aponta para paginas diferentes conforme o ambiente:
+// desenvolvimento lista tambem as novas funcionalidades.
+function updateReleaseLink() {
+    const target = $('#target').val();
+    const link = target === "desenv" ? `${URL_RELEASE}?newfeatures=sim` : URL_RELEASE;
+
+    $('#link-changelog').attr('href', link);
+}
+
 function normalize(str) {
     return str.toLowerCase().normalize("NFD").replace(/[^a-zA-Zs]/g, "");
 }
@@ -269,8 +279,10 @@ $(() => {
 
     $('#target').on('change', (e) => {
         getTabSelected();
+        updateReleaseLink();
     })
 
     getStatus();
     getLog('servidor.log', $('#log1'));
+    updateReleaseLink();
 })
