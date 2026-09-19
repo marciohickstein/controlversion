@@ -1,7 +1,7 @@
-### Obtem dados do log
-GET http://localhost:8001/log?file=servidor.log
-### Salva dados do log
-POST http://localhost:8001/log
+### Obtem o historico de versao
+GET http://localhost:8001/versao?file=servidor.log
+### Registra uma entrada no historico de versao
+POST http://localhost:8001/versao
 Content-Type: application/json
 
 {

@@ -94,7 +94,7 @@ function executeCommand(host, port, command, callback) {
 }
 
 function getLog(file, tabLog) {
-    let urlRest = `${url}/log?file=${file}`;
+    let urlRest = `${url}/versao?file=${file}`;
 
     sendGetRest(`${urlRest}`, function (error, data) {
         if (error) {

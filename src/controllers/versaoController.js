@@ -6,7 +6,7 @@ const { getDateFormatted } = require('../utils')
 const logger = require('../logger');
 
 module.exports = {
-	insData: (req, res) => {
+	saveData: (req, res) => {
 		let response;
 		let { file, data } = req.body;
 

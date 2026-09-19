@@ -2,7 +2,7 @@ const config = require('./config');
 const path = require('path');
 const express = require('express');
 const authRoutes = require('./routes/authRoutes');
-const logRoutes = require('./routes/logRoutes');
+const versaoRoutes = require('./routes/versaoRoutes');
 const warnRoutes = require('./routes/warnRoutes');
 
 const JWT = require('jsonwebtoken');
@@ -72,7 +72,7 @@ class AppController {
         this.app.use('/vendor/jquery', express.static(path.join(__dirname, '..', 'node_modules', 'jquery', 'dist')));
 
         this.app.use(authRoutes);
-        this.app.use(logRoutes);
+        this.app.use(versaoRoutes);
 
         this.app.use('/exec', verifyToken, require('./routes/execRoutes'));
         this.app.use('/', verifyToken, warnRoutes);
