@@ -365,6 +365,11 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.custom-switch input:disabled + .slider {
+  cursor: wait;
+  opacity: 0.5;
+}
+
 .custom-switch input:checked + .slider {
   background-color: var(--primary-color);
 }

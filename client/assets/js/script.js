@@ -2,6 +2,9 @@ const LOCKED = "LOCKED";
 const UNLOCKED = "UNLOCKED";
 const CMDREPO = "/home/svn/repositorio.sh"
 const URL_RELEASE = "http://www.inetsoft.com.br/area-cliente/bugs_newfeatures.html";
+// Pausa entre o mklock/mkunlock e o mkcheck: o script ainda esta terminando no
+// servidor, e consultar na sequencia pode ler o estado anterior.
+const DELAY_CHECK_STATUS = 1500;
 
 const url = window.location.origin;
 
@@ -123,15 +126,23 @@ function execCommand(command, params, callback) {
 //     });
 // }
 
-function getStatus() {
-    let command = CMDREPO;
+// Enquanto o SSH nao confirma, o switch fica travado: um segundo clique abriria
+// outra conexao antes de a primeira responder.
+function travarSwitch(travado) {
+    $('#switch1').prop('disabled', travado);
+}
+
+function getStatus(callback) {
     let params = "checkrepo";
+    const concluir = () => { if (callback) callback(); };
+
     executeCommand(params, (err, data) => {
         let status = '';
 
         if (err || !data) {
             console.log(err);
             $('#status').html('Não foi possível consultar o status do repositório. Verifique sua conexão e tente novamente.');
+            concluir();
             return;
         }
 
@@ -150,6 +161,7 @@ function getStatus() {
         let switchButton = $('#switch1')[0];
         switchButton.checked = (status.trim() === LOCKED);
         $('#status').html(status);
+        concluir();
     });
 }
 
@@ -202,13 +214,15 @@ $(() => {
         let status = $('#status').html();
         let params = status.trim() === UNLOCKED ? "blockrepo" : "unblockrepo";
 
-        executeCommand(params, (err, data) => {
-            if (err) {
-                alert(err);
-                return;
-            }
+        travarSwitch(true);
 
-            getStatus();
+        executeCommand(params, (err, data) => {
+            if (err)
+                alert(err);
+
+            // Mesmo em caso de erro o status e reconsultado: o switch ja virou na
+            // tela e precisa voltar a refletir o estado real do repositorio.
+            setTimeout(() => getStatus(() => travarSwitch(false)), DELAY_CHECK_STATUS);
         });
     });
 
@@ -286,7 +300,8 @@ $(() => {
         updateReleaseLink();
     })
 
-    getStatus();
+    travarSwitch(true);
+    getStatus(() => travarSwitch(false));
     getLog('servidor.log', $('#log1'));
     updateReleaseLink();
 })
