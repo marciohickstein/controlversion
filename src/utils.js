@@ -1,4 +1,5 @@
 const { readdirSync } = require('fs');
+const logger = require('./logger');
 
 const users = [
     { id: 1, username: 'suporte', password: 'sup@rte4' },
@@ -98,8 +99,15 @@ function parserData(data) {
 
 // Format request received to output
 function logRequest(req, res, next) {
-    const data = Object.keys(req.body).length != 0 ? JSON.stringify(req.body) : '';
-    console.log(`Recv: [${req.method}] ${req.originalUrl} ${data ? "[DATA] " + data : ''}`);
+    const start = Date.now();
+    const body = Object.keys(req.body).length != 0 ? logger.redact(req.body) : undefined;
+
+    logger.info(`Recv: [${req.method}] ${req.originalUrl}`, body);
+
+    res.on('finish', () => {
+        logger.info(`Send: [${req.method}] ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)`);
+    });
+
     return next();
 }
 

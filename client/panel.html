@@ -33,8 +33,16 @@
 
     <!-- Main Content -->
     <main class="panel-container">
+        <!-- Abas principais -->
+        <nav class="panel-tabs">
+            <button type="button" class="panel-tab active" data-section="sec-status">Status do Repositório</button>
+            <button type="button" class="panel-tab" data-section="sec-warn">Aviso Geral</button>
+            <button type="button" class="panel-tab" data-section="sec-connect">Teste de Conexão</button>
+            <button type="button" class="panel-tab" data-section="sec-logs">Logs do Sistema</button>
+        </nav>
+
         <!-- Repository Status Card -->
-        <div class="card">
+        <div class="card panel-section active" id="sec-status">
             <h2 class="card-title">Status do Repositório</h2>
             <div class="form-row">
                 <div class="form-group-inline" style="flex: 2;">
@@ -52,7 +60,7 @@
         </div>
 
         <!-- Warning Card -->
-        <div class="card">
+        <div class="card panel-section" id="sec-warn">
             <h2 class="card-title">Aviso Geral</h2>
             <div class="form-row">
                 <div class="form-group-inline">
@@ -65,18 +73,18 @@
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-group-inline" style="flex: 3;">
+                <div class="form-group-inline">
                     <label for="text-warn">Mensagem do Aviso</label>
                     <textarea id="text-warn" class="form-control" rows="3" placeholder="Digite a mensagem do aviso..."></textarea>
                 </div>
-                <div class="form-group-inline" style="flex: 0; min-width: auto;">
-                    <button id="btn-warn" class="btn btn-danger">Gerar Aviso</button>
-                </div>
+            </div>
+            <div class="form-actions">
+                <button id="btn-warn" class="btn btn-primary">Gerar Aviso</button>
             </div>
         </div>
 
         <!-- Connection Test Card -->
-        <div class="card">
+        <div class="card panel-section" id="sec-connect">
             <h2 class="card-title">Teste de Conexão</h2>
             <div class="form-row">
                 <div class="form-group-inline" style="flex: 2;">
@@ -87,9 +95,9 @@
                     <label for="inputPort">Porta</label>
                     <input type="number" id="inputPort" name="inputPort" class="form-control" placeholder="22">
                 </div>
-                <div class="form-group-inline" style="flex: 0; min-width: auto;">
-                    <button id="btn-connect" class="btn btn-primary">Testar Conexão</button>
-                </div>
+            </div>
+            <div class="form-actions">
+                <button id="btn-connect" class="btn btn-primary">Testar Conexão</button>
             </div>
         </div>
 
@@ -117,14 +125,14 @@
                         <option value="chkblockupt">Atualização Habilitada?</option>
                     </select>
                 </div>
-                <div class="form-group-inline" style="flex: 0; min-width: auto;">
-                    <button id="btn-execute" class="btn btn-danger">Executar</button>
-                </div>
+            </div>
+            <div class="form-actions">
+                <button id="btn-execute" class="btn btn-primary">Executar</button>
             </div>
         </div> -->
 
         <!-- Logs Card -->
-        <div class="card">
+        <div class="card panel-section" id="sec-logs">
             <h2 class="card-title">Logs do Sistema</h2>
             <div class="form-row" style="margin-bottom: 20px;">
                 <div class="form-group-inline" style="flex: 0; min-width: 200px;">
@@ -158,7 +166,7 @@
         </div>
     </main>
 
-    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="/vendor/jquery/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
     <script>
@@ -180,6 +188,17 @@
         if (!sessionStorage.getItem("token")) {
             window.location.replace(window.location.origin);
         }
+
+        // Troca das abas principais do painel
+        document.querySelectorAll('.panel-tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+
+                this.classList.add('active');
+                document.getElementById(this.dataset.section).classList.add('active');
+            });
+        });
 
         // Tab functionality
         document.querySelectorAll('.nav-tabs-custom .nav-link').forEach(tab => {

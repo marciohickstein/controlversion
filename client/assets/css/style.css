@@ -102,10 +102,13 @@ body {
 }
 
 .btn {
-  padding: 12px 24px;
+  padding: 0 20px;
+  height: 42px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  white-space: nowrap;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -124,16 +127,6 @@ body {
   background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-}
-
-.btn-danger {
-  background: var(--danger-color);
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
 }
 
 .btn-block {
@@ -175,17 +168,18 @@ body {
 }
 
 .btn-logout {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--primary-color);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 20px;
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  height: 38px;
+  padding: 0 16px;
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--primary-hover);
+  border-color: rgba(255, 255, 255, 0.6);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-logout svg {
@@ -196,6 +190,47 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px 40px;
+}
+
+/* Abas principais do painel */
+.panel-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.panel-tab {
+  padding: 12px 20px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panel-tab:hover {
+  color: var(--primary-color);
+}
+
+.panel-tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.panel-section {
+  display: none;
+}
+
+.panel-section.active {
+  display: block;
 }
 
 .card {
@@ -233,6 +268,13 @@ body {
   min-width: 150px;
 }
 
+/* Botoes de acao em linha propria, sem ocupar coluna do formulario */
+.form-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
 .form-group-inline label {
   display: block;
   font-weight: 500;
@@ -250,6 +292,11 @@ body {
   border-radius: var(--radius-md);
   font-size: 0.95rem;
   transition: all 0.2s ease;
+}
+
+.form-group-inline input,
+.form-group-inline select {
+  height: 42px;
 }
 
 .form-group-inline input:focus,

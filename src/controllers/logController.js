@@ -3,6 +3,7 @@ const prependFile = require('prepend-file');
 const path = require('path');
 const fs = require('fs');
 const { getDateFormatted } = require('../utils')
+const logger = require('../logger');
 
 module.exports = {
 	insData: (req, res) => {
@@ -11,7 +12,7 @@ module.exports = {
 
 		if (!file || !data) {
 			response = { error: 'Parameter file and data are required' };
-			console.log(`Send: ${JSON.stringify(response)}`);
+			logger.warn('Gravacao de log sem os parametros file/data');
 			res.json(response);
 		}
 
@@ -28,10 +29,11 @@ module.exports = {
 			prependFile(file, contentData, (err) => {
 				if (err) {
 					response = { error: err.message };
+					logger.error(`Falha ao gravar em ${file}`, err);
 				} else {
 					response = { success: `Success: ${file} Log file write with: ${data}` };
+					logger.debug(`Registro gravado em ${file}`);
 				}
-				console.log(`Send: ${JSON.stringify(response)}`);
 				res.json(response);
 			});
 			// appendFile(file, contentData, (err) => {
@@ -50,7 +52,7 @@ module.exports = {
 
 		if (!file) {
 			response = { error: 'Parameter file is required' };
-			console.log(`Send: ${JSON.stringify(response)}`);
+			logger.warn('Leitura de log sem o parametro file');
 			return res.json(response);
 		}
 
@@ -59,7 +61,9 @@ module.exports = {
 		fs.readFile(file, (err, data) => {
 			let fileData = err ? { error: err.message } : data.toString();
 
-			console.log(`Send: ${JSON.stringify(fileData)}`);
+			if (err)
+				logger.warn(`Nao foi possivel ler o arquivo de log ${file}: ${err.message}`);
+
 			return res.json(fileData);
 		});
 	}

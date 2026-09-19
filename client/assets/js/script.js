@@ -139,6 +139,12 @@ function getStatus() {
     executeCommand(host, port, params, (err, data) => {
         let status = '';
 
+        if (err || !data) {
+            console.log(err);
+            $('#status').html('Não foi possível consultar o status do repositório. Verifique sua conexão e tente novamente.');
+            return;
+        }
+
         if (data.error) {
             status = data.message;
         } else {

@@ -10,6 +10,33 @@ const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils');
 const config = require('../config');
 
 const { Client } = require('ssh2');
+const logger = require('../logger');
+
+// Traduz os erros tecnicos de rede/SSH para uma mensagem que o usuario comum entenda.
+// O detalhe original continua indo para o log do servidor.
+function friendlyConnectionError(error, host, port) {
+	const detail = `${(error && error.message) || error}`;
+
+	if (/Timed out while waiting for handshake|ETIMEDOUT/i.test(detail))
+		return `Não foi possível conectar ao servidor ${host}. Verifique se ele está ligado e acessível na rede.`;
+
+	if (/ECONNREFUSED/i.test(detail))
+		return `O servidor ${host} recusou a conexão na porta ${port}. Verifique se o serviço está ativo.`;
+
+	if (/ECONNRESET/i.test(detail))
+		return `A conexão com o servidor ${host} foi interrompida. Tente novamente em instantes.`;
+
+	if (/EHOSTUNREACH|ENETUNREACH/i.test(detail))
+		return `O servidor ${host} não foi alcançado. Verifique a rede ou o endereço informado.`;
+
+	if (/ENOTFOUND|EAI_AGAIN/i.test(detail))
+		return `O endereço ${host} não foi encontrado. Verifique se está escrito corretamente.`;
+
+	if (/authentication methods failed|Authentication failure/i.test(detail))
+		return `Não foi possível autenticar no servidor ${host}. Verifique o usuário e a senha configurados.`;
+
+	return `Não foi possível concluir a operação no servidor ${host}. Detalhe técnico: ${detail}`;
+}
 
 function executeCommandOnClient(host, port, user, pass, command, response) {
 	const conn = new Client();
@@ -31,18 +58,16 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 
 	if (!command2Execute) {
 		const msg = `Command not found`;
-		console.log(msg);
+		logger.warn(`Comando desconhecido solicitado: "${command}"`);
 		response.json(setOKResponse(msg));
 		return;
 	}
 
-	console.log(`Executing command on ${host}:${port} ${command2Execute} as ${user}`)
+	logger.info(`Executando em ${host}:${port} como ${user}: ${command2Execute}`);
 	try {
 		conn.on('ready', () => {
 //			console.log('Client :: ready');
 			conn.exec(command2Execute, (err, stream) => {
-
-				console.error(`ERROR`)
 				if (err) throw err;
 				stream.on('close', (code, signal) => {
 					const msg = `Command executed successfully`;
@@ -50,20 +75,18 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 					conn.end();
 				}).on('data', (data) => {
 					const msg = `Command executed successfully\nResponse:\n${data}`;
-					console.log(data.toString());
+					logger.debug(`Saida de ${host}: ${data.toString().trim()}`);
 					response.json(setOKResponse(msg));
 					conn.end();
 				}).stderr.on('data', (data) => {
-					console.log('STDERR: ' + data);
 					const msg = `Error to execute command: ${data}`;
-					console.log(msg);
+					logger.error(`Erro retornado por ${host} ao executar o comando: ${data.toString().trim()}`);
 					response.json(setErrorResponse(msg));
 				});
 			});
 		}).on('error', (err) => {
-			const msg = `${err}`;
-			console.log(err.toString());
-			response.json(setErrorResponse(msg));
+			logger.error(`Falha de conexao com ${host}:${port}`, err);
+			response.json(setErrorResponse(friendlyConnectionError(err, host, port)));
 			conn.end();
 		}).connect({
 			host,
@@ -72,10 +95,8 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 			password: pass
 		})
 	} catch (error) {
-		console.log('STDERR: ' + error);
-		const msg = `Error to execute command: ${error}`;
-		console.log(error);
-		response.json(setErrorResponse(error));
+		logger.error(`Falha ao executar o comando em ${host}:${port}`, error);
+		response.json(setErrorResponse(friendlyConnectionError(error, host, port)));
 	}
 }
 
@@ -86,31 +107,25 @@ function testHostPortAccessibility(host, port, response) {
 
 	socket.on('connect', () => {
 		const msg = `Sucesso ao conectar com o cliente ${host}:${port}`;
-		console.log(msg);
+		logger.info(msg);
 		socket.destroy();
 		response.json(setOKResponse(msg));
 	});
 
 	socket.on('timeout', () => {
-		const msg = `Tempo de conexao com o cliente ${host}:${port} expirou. \nTente novamente mais tarde.`;
-		console.error(msg);
+		logger.error(`Timeout ao conectar em ${host}:${port}`);
 		socket.destroy();
-		response.json(setErrorResponse(msg));
+		response.json(setErrorResponse(`O servidor ${host} não respondeu na porta ${port}. Verifique se ele está ligado e acessível na rede.`));
 	});
 
 	socket.on('error', (error) => {
-		const msg = `Erro ao conectar com o cliente ${host}:${port}: ${error.message}`;
-		console.error(msg);
+		logger.error(`Erro ao conectar em ${host}:${port}: ${error.message}`);
 		socket.destroy();
-		response.json(setErrorResponse(msg));
+		response.json(setErrorResponse(friendlyConnectionError(error, host, port)));
 	});
 
 	socket.on('close', (hadError) => {
-		if (hadError) {
-			console.error(`Socket closed due to errors`);
-		} else {
-			console.log(`Socket closed gracefully`);
-		}
+		logger.debug(`Conexao com ${host}:${port} encerrada${hadError ? ' apos erro' : ''}`);
 	});
 
 	socket.connect(port, host);
@@ -123,10 +138,12 @@ async function execScript(command, arguments) {
 		output = await execFile(command, arguments);
 		if (!output.stderr) {
 			success = true;
-			console.log('success', output.stdout);
+			logger.debug(`Script ${command} executado com sucesso`, output.stdout);
+		} else {
+			logger.error(`Script ${command} retornou erro: ${output.stderr}`);
 		}
 	} catch (error) {
-		console.error(`Error: ${error.message}`);
+		logger.error(`Falha ao executar o script ${command}`, error);
 	}
 
 	return success;
@@ -170,7 +187,7 @@ module.exports = {
 			const nextModbase = getNextModbase();
 
 			if (!nextModbase) {
-				return res.json(setErrorResponse(`N�o foi poss�vel localizar o pr�ximo modbase em ${process.env.DIR_MODBASE}`));
+				return res.json(setErrorResponse(`Não foi possível localizar o próximo modbase em ${process.env.DIR_MODBASE}`));
 			}
 
 			// Escrevo no arquivo de modbase o comando para criar lembrete geral
@@ -202,7 +219,7 @@ module.exports = {
 		} catch (error) {
 			const messageError =
 				`Modbase ${fullPathNextModbaseDest} de lembrete criado no srvinet2 com sucesso, ` +
-				`mas n�o foi poss�vel publicar o mesmo com o programa copiabase.\n` +
+				`mas não foi possível publicar o mesmo com o programa copiabase.\n` +
 				`Favor pedir para algum desenvolvedor efetuar o copia base!\n` +
 				`Error message: ${error}`;
 			return res.json(setErrorResponse(messageError));
@@ -212,12 +229,18 @@ module.exports = {
 	},
 	connect: async (req, res) => {
 		const { host, port } = req.body;
-		console.log('XXX', host, port)
+		logger.info(`Teste de conexao solicitado para ${host}:${port}`);
 		testHostPortAccessibility(host, port, res);
 	},
 	executeOnClient: async (req, res) => {
 		const { host, port, command } = req.body;
-		const password = atob(config.app.imobPass);
+
+		let password;
+		try {
+			password = atob(config.app.imobPass);
+		} catch (error) {
+			return res.json(setErrorResponse('IMOBPASS invalida: o valor no .env precisa estar em base64.'));
+		}
 
 		executeCommandOnClient(host.trim(), port, config.app.imobUser, password, command, res);
 	}

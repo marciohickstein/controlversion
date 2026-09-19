@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const logger = require('../logger');
 
 module.exports = {
 	exec: (req, res) => {
@@ -8,14 +9,14 @@ module.exports = {
 		if (!cmd) {
 			execCmd = false;
 			response = { error: "Command parameter is required" }
-			console.log(`Send: ${JSON.stringify(response)}`);
+			logger.warn('Requisicao de execucao sem o parametro cmd');
 			res.json(response);
 		}
 
 		if (params && !Array.isArray(params)) {
 			execCmd = false;
 			response = { error: "Params have to be an array" }
-			console.log(`Send: ${JSON.stringify(response)}`);
+			logger.warn('Requisicao de execucao com params fora do formato de array');
 			res.json(response);
 		}
 
@@ -32,17 +33,16 @@ module.exports = {
 			})
 
 			command.on('error', (error) => {
-				console.log(`Error: ${error.message}`);
+				logger.error(`Falha ao executar "${cmd}"`, error);
 			})
 
 			command.on('close', (code) => {
-				console.log('Child process exited with exit code ' + code);
+				logger.debug(`Comando "${cmd}" terminou com codigo ${code}`);
 				response = {
 					code: code,
 					stdout: stdout,
 					stderr: code === -2 ? 'Command not found' : stderr
 				}
-				console.log(`Send: ${JSON.stringify(response)}`);
 				res.json(response);
 			});
 		}
