@@ -38,6 +38,16 @@ function friendlyConnectionError(error, host, port) {
 	return `Não foi possível concluir a operação no servidor ${host}. Detalhe técnico: ${detail}`;
 }
 
+// atob() aceita qualquer base64 valido, inclusive um que nao veio de uma senha em
+// texto. Quando a IMOBPASS guarda a senha crua, a decodificacao "funciona" e produz
+// bytes binarios, e o SSH so responde "authentication methods failed".
+function pareceTexto(valor) {
+	return [...valor].every((caractere) => {
+		const codigo = caractere.charCodeAt(0);
+		return codigo >= 32 && codigo <= 126;
+	});
+}
+
 function executeCommandOnClient(host, port, user, pass, command, response) {
 	const conn = new Client();
 
@@ -63,7 +73,9 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 		return;
 	}
 
-	logger.info(`Executando em ${host}:${port} como ${user}: ${command2Execute}`);
+	// Linha completa e equivalente ao que e executado, para reproduzir no terminal.
+	// A senha nunca entra aqui.
+	logger.info(`Executando via SSH: ssh -p ${port} ${user}@${host} '${command2Execute}'`);
 	try {
 		conn.on('ready', () => {
 //			console.log('Client :: ready');
@@ -254,6 +266,11 @@ module.exports = {
 		} catch (error) {
 			return res.json(setErrorResponse('IMOBPASS invalida: o valor no .env precisa estar em base64.'));
 		}
+
+		if (!pareceTexto(password))
+			logger.warn('IMOBPASS decodificada contem caracteres nao imprimiveis. ' +
+				'Provavelmente a senha foi gravada em texto puro no .env; ' +
+				'o valor esperado e o base64 dela (printf %s "<senha>" | base64).');
 
 		executeCommandOnClient(host.trim(), port, config.app.imobUser, password, command, res);
 	}
