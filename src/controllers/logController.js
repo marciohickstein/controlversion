@@ -13,7 +13,7 @@ module.exports = {
 		if (!file || !data) {
 			response = { error: 'Parameter file and data are required' };
 			logger.warn('Gravacao de log sem os parametros file/data');
-			res.json(response);
+			return res.json(response);
 		}
 
 		file = `${config.app.dirVersao}${file}`;
@@ -26,16 +26,17 @@ module.exports = {
 				fs.mkdirSync(config.app.dirVersao, '0777', true);
 
 
-			prependFile(file, contentData, (err) => {
-				if (err) {
-					response = { error: err.message };
-					logger.error(`Falha ao gravar em ${file}`, err);
-				} else {
+			prependFile(file, contentData)
+				.then(() => {
 					response = { success: `Success: ${file} Log file write with: ${data}` };
 					logger.debug(`Registro gravado em ${file}`);
-				}
-				res.json(response);
-			});
+					res.json(response);
+				})
+				.catch((err) => {
+					response = { error: err.message };
+					logger.error(`Falha ao gravar em ${file}`, err);
+					res.json(response);
+				});
 			// appendFile(file, contentData, (err) => {
 			//     if (err) {
 			//         response = {error: err.message};
