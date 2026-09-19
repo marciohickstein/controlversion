@@ -48,21 +48,51 @@ function pareceTexto(valor) {
 	});
 }
 
-function executeCommandOnClient(host, port, user, pass, command, response) {
+// Quantas vezes tentar quando a conexao morre antes do handshake, e a espera
+// entre elas (multiplicada pelo numero da tentativa).
+const MAX_TENTATIVAS = 3;
+const ESPERA_ENTRE_TENTATIVAS = 400;
+
+function executeCommandOnClient(host, port, user, pass, command, response, tentativa = 1) {
 	const conn = new Client();
 
-	let respondido = false;
+	let encerrado = false;
+	let conectou = false;
 	let saida = '';
 	let saidaErro = '';
 
 	// O ssh2 emite mais de um evento para a mesma conexao (um ECONNRESET seguido de
 	// "Connection lost before handshake", stdout junto de stderr, etc). Sem esta
 	// trava a segunda resposta estoura ERR_HTTP_HEADERS_SENT e derruba o processo.
+	// O mesmo sinalizador impede que dois eventos agendem duas novas tentativas.
 	function responder(payload) {
-		if (respondido) return;
+		if (encerrado) return;
 
-		respondido = true;
+		encerrado = true;
 		response.json(payload);
+	}
+
+	// Conexao derrubada antes do handshake significa que o servidor nem chegou a
+	// enviar o banner SSH: o comando nao foi executado, entao repetir e seguro.
+	// E o sintoma do throttling do sshd (MaxStartups), que recusa conexoes nao
+	// autenticadas de forma probabilistica quando ha muitas em andamento.
+	function falhaDeConexao(err) {
+		if (encerrado) return;
+
+		if (!conectou && tentativa < MAX_TENTATIVAS) {
+			const espera = ESPERA_ENTRE_TENTATIVAS * tentativa;
+
+			encerrado = true;
+			logger.warn(`Conexao com ${host}:${port} caiu antes do handshake (${err.message}). ` +
+				`Tentando de novo em ${espera}ms (tentativa ${tentativa + 1} de ${MAX_TENTATIVAS})`);
+			conn.end();
+			setTimeout(() => executeCommandOnClient(host, port, user, pass, command, response, tentativa + 1), espera);
+			return;
+		}
+
+		logger.error(`Falha de conexao com ${host}:${port}`, err);
+		responder(setErrorResponse(friendlyConnectionError(err, host, port)));
+		conn.end();
 	}
 
 	const commands = {
@@ -92,6 +122,9 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 	logger.info(`Executando via SSH: ssh -p ${port} ${user}@${host} '${command2Execute}'`);
 	try {
 		conn.on('ready', () => {
+			// A partir daqui o comando pode ter sido executado: nao se repete mais.
+			conectou = true;
+
 			conn.exec(command2Execute, (err, stream) => {
 				// Um throw aqui escaparia do try/catch abaixo, que so cobre a
 				// chamada sincrona, e viraria excecao nao tratada.
@@ -123,11 +156,7 @@ function executeCommandOnClient(host, port, user, pass, command, response) {
 					saidaErro += data;
 				});
 			});
-		}).on('error', (err) => {
-			logger.error(`Falha de conexao com ${host}:${port}`, err);
-			responder(setErrorResponse(friendlyConnectionError(err, host, port)));
-			conn.end();
-		}).connect({
+		}).on('error', falhaDeConexao).connect({
 			host,
 			port,
 			username: user,
