@@ -21,6 +21,9 @@ module.exports = {
 		repoHost: process.env.REPO_HOST,
 		repoPort: Number(process.env.REPO_PORT || 22),
 		repoScriptDir: (process.env.REPO_SCRIPT_DIR || '').replace(/\/+$/, ''),
+		// Cliente SSH usado para rodar os scripts no servidor de repositorio.
+		// Aceita argumentos fixos junto ("sshpass -e ssh", "ssh -o StrictHostKeyChecking=accept-new").
+		sshCommand: (process.env.SSH_COMMAND || '').trim() || 'ssh',
 		imobUser: process.env.IMOBUSER,
 		imobPass: process.env.IMOBPASS,
 	}

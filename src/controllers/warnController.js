@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { Socket } = require('net');
 const { basename } = require('path');
-const { execSync } = require("child_process");
+const { execSync, spawn } = require("child_process");
 const { promisify } = require('util');
 const execFile = promisify(require('child_process').execFile);
 
@@ -9,7 +9,6 @@ const { unlinkSync, writeFileSync } = require('fs');
 const { getNextModbase, setOKResponse, setErrorResponse } = require('../utils');
 const config = require('../config');
 
-const { Client } = require('ssh2');
 const logger = require('../logger');
 
 // Traduz os erros tecnicos de rede/SSH para uma mensagem que o usuario comum entenda.
@@ -17,22 +16,27 @@ const logger = require('../logger');
 function friendlyConnectionError(error, host, port) {
 	const detail = `${(error && error.message) || error}`;
 
-	if (/Timed out while waiting for handshake|ETIMEDOUT/i.test(detail))
+	if (/Timed out while waiting for handshake|ETIMEDOUT|Connection timed out|Operation timed out/i.test(detail))
 		return `Não foi possível conectar ao servidor ${host}. Verifique se ele está ligado e acessível na rede.`;
 
-	if (/ECONNREFUSED/i.test(detail))
+	if (/ECONNREFUSED|Connection refused/i.test(detail))
 		return `O servidor ${host} recusou a conexão na porta ${port}. Verifique se o serviço está ativo.`;
 
-	if (/ECONNRESET/i.test(detail))
+	if (/ECONNRESET|Connection reset|Connection closed by remote host|kex_exchange_identification/i.test(detail))
 		return `A conexão com o servidor ${host} foi interrompida. Tente novamente em instantes.`;
 
-	if (/EHOSTUNREACH|ENETUNREACH/i.test(detail))
+	if (/EHOSTUNREACH|ENETUNREACH|No route to host|Network is unreachable/i.test(detail))
 		return `O servidor ${host} não foi alcançado. Verifique a rede ou o endereço informado.`;
 
-	if (/ENOTFOUND|EAI_AGAIN/i.test(detail))
+	if (/ENOTFOUND|EAI_AGAIN|Could not resolve hostname|Name or service not known/i.test(detail))
 		return `O endereço ${host} não foi encontrado. Verifique se está escrito corretamente.`;
 
-	if (/authentication methods failed|Authentication failure/i.test(detail))
+	// O ssh guarda a chave do servidor em ~/.ssh/known_hosts do usuario que roda a
+	// aplicacao. Na primeira conexao ela ainda nao esta la e o acesso e recusado.
+	if (/Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED|No RSA host key is known/i.test(detail))
+		return `A identidade do servidor ${host} não pôde ser confirmada. Registre a chave dele em known_hosts no servidor da aplicação.`;
+
+	if (/authentication methods failed|Authentication failure|Permission denied|sshpass: Wrong password|Too many authentication failures/i.test(detail))
 		return `Não foi possível autenticar no servidor ${host}. Verifique o usuário e a senha configurados.`;
 
 	return `Não foi possível concluir a operação no servidor ${host}. Detalhe técnico: ${detail}`;
@@ -53,46 +57,54 @@ function pareceTexto(valor) {
 const MAX_TENTATIVAS = 3;
 const ESPERA_ENTRE_TENTATIVAS = 400;
 
-function executeCommandOnClient(host, port, user, pass, command, response, tentativa = 1) {
-	const conn = new Client();
+// Codigo que o cliente ssh reserva para os erros dele mesmo (conexao, autenticacao).
+// Qualquer outro valor veio do comando executado no servidor remoto.
+const SAIDA_ERRO_DO_SSH = 255;
 
+// SSH_COMMAND pode trazer argumentos fixos junto do executavel, por exemplo
+// "sshpass -e ssh" ou "/usr/bin/ssh -o StrictHostKeyChecking=accept-new".
+// O primeiro pedaco e o programa; o resto entra antes dos argumentos montados aqui.
+function partesDoComandoSsh() {
+	const partes = config.app.sshCommand.trim().split(/\s+/);
+	const programa = partes[0];
+	const argumentosFixos = partes.slice(1);
+	// Com o sshpass a senha do .env ainda e usada (ele a le da variavel SSHPASS);
+	// com o ssh puro a autenticacao fica por conta da chave do usuario da aplicacao.
+	const usaSshpass = /(^|\/)sshpass$/.test(programa);
+
+	// Sem o sshpass o ssh pediria a senha no terminal e ficaria parado esperando
+	// alguem que nao existe: o BatchMode faz ele falhar na hora, com mensagem.
+	if (!usaSshpass && !argumentosFixos.some((argumento) => /BatchMode/i.test(argumento)))
+		argumentosFixos.push('-o', 'BatchMode=yes');
+
+	// Sem limite de tempo uma maquina desligada seguraria a requisicao por minutos.
+	if (!argumentosFixos.some((argumento) => /ConnectTimeout/i.test(argumento)))
+		argumentosFixos.push('-o', 'ConnectTimeout=10');
+
+	return { programa, argumentosFixos, usaSshpass };
+}
+
+// Conexao derrubada antes do handshake significa que o servidor nem chegou a
+// enviar o banner SSH: o comando nao foi executado, entao repetir e seguro.
+// E o sintoma do throttling do sshd (MaxStartups), que recusa conexoes nao
+// autenticadas de forma probabilistica quando ha muitas em andamento.
+function caiuAntesDoHandshake(detalhe) {
+	return /kex_exchange_identification|Connection closed by remote host|Connection reset by peer|banner exchange/i.test(detalhe);
+}
+
+function executeCommandOnClient(host, port, user, pass, command, response, tentativa = 1) {
 	let encerrado = false;
-	let conectou = false;
 	let saida = '';
 	let saidaErro = '';
 
-	// O ssh2 emite mais de um evento para a mesma conexao (um ECONNRESET seguido de
-	// "Connection lost before handshake", stdout junto de stderr, etc). Sem esta
-	// trava a segunda resposta estoura ERR_HTTP_HEADERS_SENT e derruba o processo.
-	// O mesmo sinalizador impede que dois eventos agendem duas novas tentativas.
+	// O processo pode falhar por mais de um caminho (um 'error' seguido do 'close',
+	// por exemplo). Sem esta trava a segunda resposta estoura ERR_HTTP_HEADERS_SENT
+	// e derruba o processo. O mesmo sinalizador impede duas novas tentativas.
 	function responder(payload) {
 		if (encerrado) return;
 
 		encerrado = true;
 		response.json(payload);
-	}
-
-	// Conexao derrubada antes do handshake significa que o servidor nem chegou a
-	// enviar o banner SSH: o comando nao foi executado, entao repetir e seguro.
-	// E o sintoma do throttling do sshd (MaxStartups), que recusa conexoes nao
-	// autenticadas de forma probabilistica quando ha muitas em andamento.
-	function falhaDeConexao(err) {
-		if (encerrado) return;
-
-		if (!conectou && tentativa < MAX_TENTATIVAS) {
-			const espera = ESPERA_ENTRE_TENTATIVAS * tentativa;
-
-			encerrado = true;
-			logger.warn(`Conexao com ${host}:${port} caiu antes do handshake (${err.message}). ` +
-				`Tentando de novo em ${espera}ms (tentativa ${tentativa + 1} de ${MAX_TENTATIVAS})`);
-			conn.end();
-			setTimeout(() => executeCommandOnClient(host, port, user, pass, command, response, tentativa + 1), espera);
-			return;
-		}
-
-		logger.error(`Falha de conexao com ${host}:${port}`, err);
-		responder(setErrorResponse(friendlyConnectionError(err, host, port)));
-		conn.end();
 	}
 
 	const commands = {
@@ -117,55 +129,93 @@ function executeCommandOnClient(host, port, user, pass, command, response, tenta
 		return;
 	}
 
+	const { programa, argumentosFixos, usaSshpass } = partesDoComandoSsh();
+	// O comando remoto vai como um argumento unico: nada aqui passa por um shell
+	// local, entao aspas e ponto-e-virgula chegam inteiros no servidor.
+	const argumentos = [...argumentosFixos, '-p', `${port}`, `${user}@${host}`, command2Execute];
+
 	// Linha completa e equivalente ao que e executado, para reproduzir no terminal.
-	// A senha nunca entra aqui.
-	logger.info(`Executando via SSH: ssh -p ${port} ${user}@${host} '${command2Execute}'`);
+	// A senha nunca entra aqui: o sshpass a le da variavel de ambiente SSHPASS.
+	logger.info(`Executando via SSH: ${programa} ${argumentosFixos.join(' ')} ` +
+		`-p ${port} ${user}@${host} '${command2Execute}'`);
+
+	let processo;
+
 	try {
-		conn.on('ready', () => {
-			// A partir daqui o comando pode ter sido executado: nao se repete mais.
-			conectou = true;
-
-			conn.exec(command2Execute, (err, stream) => {
-				// Um throw aqui escaparia do try/catch abaixo, que so cobre a
-				// chamada sincrona, e viraria excecao nao tratada.
-				if (err) {
-					logger.error(`Falha ao abrir o canal de execucao em ${host}:${port}`, err);
-					responder(setErrorResponse(friendlyConnectionError(err, host, port)));
-					conn.end();
-					return;
-				}
-
-				// A saida e acumulada e respondida no fechamento do stream: responder
-				// no primeiro 'data' truncava comandos que escrevem em varios pedacos.
-				stream.on('close', (code) => {
-					if (saidaErro && !saida) {
-						logger.error(`Erro retornado por ${host} ao executar o comando: ${saidaErro.trim()}`);
-						responder(setErrorResponse(`Error to execute command: ${saidaErro}`));
-					} else {
-						if (saidaErro)
-							logger.warn(`${host} escreveu em stderr mas o comando produziu saida: ${saidaErro.trim()}`);
-
-						logger.debug(`Saida de ${host} (codigo ${code}): ${saida.trim()}`);
-						responder(setOKResponse(`Command executed successfully\nResponse:\n${saida}`));
-					}
-
-					conn.end();
-				}).on('data', (data) => {
-					saida += data;
-				}).stderr.on('data', (data) => {
-					saidaErro += data;
-				});
-			});
-		}).on('error', falhaDeConexao).connect({
-			host,
-			port,
-			username: user,
-			password: pass
-		})
+		processo = spawn(programa, argumentos, {
+			// stdin fechado: nao ha ninguem para responder a um prompt interativo.
+			stdio: ['ignore', 'pipe', 'pipe'],
+			env: usaSshpass ? { ...process.env, SSHPASS: pass } : process.env
+		});
 	} catch (error) {
-		logger.error(`Falha ao executar o comando em ${host}:${port}`, error);
+		logger.error(`Falha ao executar "${programa}"`, error);
 		responder(setErrorResponse(friendlyConnectionError(error, host, port)));
+		return;
 	}
+
+	// A saida e acumulada e respondida no encerramento do processo: responder no
+	// primeiro 'data' truncava comandos que escrevem em varios pedacos.
+	processo.stdout.on('data', (data) => {
+		saida += data;
+	});
+
+	processo.stderr.on('data', (data) => {
+		saidaErro += data;
+	});
+
+	processo.on('error', (error) => {
+		if (error.code === 'ENOENT') {
+			logger.error(`Comando SSH "${programa}" nao encontrado no servidor da aplicacao`, error);
+			responder(setErrorResponse(
+				`O comando SSH "${programa}" não foi encontrado no servidor da aplicação. ` +
+				`Ajuste SSH_COMMAND no .env.`));
+			return;
+		}
+
+		logger.error(`Falha ao executar "${programa}" para ${host}:${port}`, error);
+		responder(setErrorResponse(friendlyConnectionError(error, host, port)));
+	});
+
+	processo.on('close', (code) => {
+		if (encerrado) return;
+
+		// Erro do proprio ssh: o comando remoto nem chegou a rodar. O sshpass usa
+		// codigos menores para os casos dele (senha errada, chave desconhecida),
+		// mas so quando nada saiu no stdout e a mensagem e reconhecidamente dele.
+		const detalhe = saidaErro.trim();
+		const falhaDoSsh = code === SAIDA_ERRO_DO_SSH ||
+			(!saida && /^sshpass:|Permission denied|Host key verification failed/im.test(detalhe));
+
+		if (falhaDoSsh) {
+			const motivo = detalhe || `o comando SSH terminou com o codigo ${code}`;
+
+			if (caiuAntesDoHandshake(motivo) && tentativa < MAX_TENTATIVAS) {
+				const espera = ESPERA_ENTRE_TENTATIVAS * tentativa;
+
+				encerrado = true;
+				logger.warn(`Conexao com ${host}:${port} caiu antes do handshake (${motivo}). ` +
+					`Tentando de novo em ${espera}ms (tentativa ${tentativa + 1} de ${MAX_TENTATIVAS})`);
+				setTimeout(() => executeCommandOnClient(host, port, user, pass, command, response, tentativa + 1), espera);
+				return;
+			}
+
+			logger.error(`Falha de conexao com ${host}:${port}: ${motivo}`);
+			responder(setErrorResponse(friendlyConnectionError(motivo, host, port)));
+			return;
+		}
+
+		if (saidaErro && !saida) {
+			logger.error(`Erro retornado por ${host} ao executar o comando: ${detalhe}`);
+			responder(setErrorResponse(`Error to execute command: ${saidaErro}`));
+			return;
+		}
+
+		if (saidaErro)
+			logger.warn(`${host} escreveu em stderr mas o comando produziu saida: ${detalhe}`);
+
+		logger.debug(`Saida de ${host} (codigo ${code}): ${saida.trim()}`);
+		responder(setOKResponse(`Command executed successfully\nResponse:\n${saida}`));
+	});
 }
 
 function testHostPortAccessibility(host, port, response) {
@@ -327,17 +377,23 @@ module.exports = {
 			return res.json(setErrorResponse('Diretorio dos scripts nao configurado. Defina REPO_SCRIPT_DIR no .env.'));
 		}
 
-		let password;
-		try {
-			password = atob(config.app.imobPass);
-		} catch (error) {
-			return res.json(setErrorResponse('IMOBPASS invalida: o valor no .env precisa estar em base64.'));
-		}
+		// A senha so faz sentido quando o SSH_COMMAND e um sshpass: o ssh puro
+		// autentica pela chave do usuario que roda a aplicacao.
+		const { usaSshpass } = partesDoComandoSsh();
+		let password = '';
 
-		if (!pareceTexto(password))
-			logger.warn('IMOBPASS decodificada contem caracteres nao imprimiveis. ' +
-				'Provavelmente a senha foi gravada em texto puro no .env; ' +
-				'o valor esperado e o base64 dela (printf %s "<senha>" | base64).');
+		if (usaSshpass) {
+			try {
+				password = atob(config.app.imobPass);
+			} catch (error) {
+				return res.json(setErrorResponse('IMOBPASS invalida: o valor no .env precisa estar em base64.'));
+			}
+
+			if (!pareceTexto(password))
+				logger.warn('IMOBPASS decodificada contem caracteres nao imprimiveis. ' +
+					'Provavelmente a senha foi gravada em texto puro no .env; ' +
+					'o valor esperado e o base64 dela (printf %s "<senha>" | base64).');
+		}
 
 		executeCommandOnClient(host.trim(), port, config.app.imobUser, password, command, res);
 	}
