@@ -56,6 +56,10 @@ const ESPERA_ENTRE_TENTATIVAS = 400;
 // Sem limite de tempo uma maquina desligada seguraria a requisicao por minutos.
 const TEMPO_LIMITE_CONEXAO = 10000;
 
+// Vai no log da conexao: em ambiente novo ajuda a saber qual biblioteca esta
+// instalada la, sem precisar abrir o node_modules do servidor.
+const VERSAO_SSH2 = require('ssh2/package.json').version;
+
 // Conexao derrubada antes do banner SSH: o comando nao chegou a ser executado,
 // entao repetir e seguro. E o sintoma do throttling do sshd (MaxStartups), que
 // recusa conexoes nao autenticadas de forma probabilistica quando ha muitas em
@@ -97,7 +101,8 @@ function executeCommandOnClient(host, port, user, pass, command, response, tenta
 			return;
 		}
 
-		logger.error(`Falha de conexao com ${host}:${port}`, err);
+		logger.error(`Falha na conexao ssh2 com ${user}@${host}:${port} ` +
+			`(${conectou ? 'depois de autenticar' : 'antes de autenticar'})`, err);
 		responder(setErrorResponse(friendlyConnectionError(err, host, port)));
 		conn.end();
 	}
@@ -128,10 +133,55 @@ function executeCommandOnClient(host, port, user, pass, command, response, tenta
 	// A senha nunca entra aqui: ela vai apenas no handshake da conexao.
 	logger.info(`Executando via SSH: ssh -p ${port} ${user}@${host} '${command2Execute}'`);
 
+	// Retrato da conexao que a biblioteca vai abrir. Quando o app roda em outra
+	// maquina e so o resultado final aparece na tela, e aqui que se ve com qual
+	// usuario, porta e limite de tempo a tentativa foi feita. Da senha vai
+	// apenas o tamanho: o suficiente para flagrar uma IMOBPASS vazia ou com o
+	// base64 errado, sem escrever o segredo no arquivo de log.
+	logger.info(`Conexao ssh2 ${VERSAO_SSH2}: usuario "${user}", host ${host}, porta ${port}, ` +
+		`autenticacao por senha (${pass.length} caracteres), readyTimeout ${TEMPO_LIMITE_CONEXAO}ms, ` +
+		`tentativa ${tentativa} de ${MAX_TENTATIVAS}`);
+
+	// Com LOG_LEVEL=debug a propria biblioteca narra cada passo do protocolo
+	// (troca de chaves, metodos de autenticacao oferecidos, abertura do canal).
+	const opcoesDaConexao = {
+		host,
+		port,
+		username: user,
+		password: pass,
+		readyTimeout: TEMPO_LIMITE_CONEXAO
+	};
+
+	if (config.app.logLevel === 'debug')
+		opcoesDaConexao.debug = (mensagem) => logger.debug(`[ssh2 ${host}:${port}] ${mensagem}`);
+
 	try {
+		// O servidor so envia o banner quando tem um configurado (/etc/issue.net).
+		conn.on('banner', (mensagem) => {
+			logger.info(`Banner de ${host}:${port}: ${`${mensagem}`.trim()}`);
+		});
+
+		// Handshake concluido: a rede e o SSH do servidor respondem. O que falhar
+		// depois disso e autenticacao ou o proprio comando remoto.
+		conn.on('handshake', (negociado) => {
+			logger.info(`Handshake com ${host}:${port} concluido ` +
+				`(kex ${negociado.kex}, chave do servidor ${negociado.serverHostKey}, cifra ${negociado.cs.cipher})`);
+		});
+
+		conn.on('end', () => {
+			logger.debug(`Conexao com ${host}:${port} encerrada pelo servidor`);
+		});
+
+		conn.on('close', () => {
+			logger.debug(`Conexao com ${host}:${port} fechada`);
+		});
+
 		conn.on('ready', () => {
 			// A partir daqui o comando pode ter sido executado: nao se repete mais.
 			conectou = true;
+
+			logger.info(`Autenticado em ${host}:${port} como "${user}". ` +
+				`Executando no servidor remoto: ${command2Execute}`);
 
 			conn.exec(command2Execute, (err, stream) => {
 				// Um throw aqui escaparia do try/catch abaixo, que so cobre a
@@ -147,7 +197,9 @@ function executeCommandOnClient(host, port, user, pass, command, response, tenta
 				// no primeiro 'data' truncava comandos que escrevem em varios pedacos.
 				stream.on('close', (code) => {
 					if (saidaErro && !saida) {
-						logger.error(`Erro retornado por ${host} ao executar o comando: ${saidaErro.trim()}`);
+						// A conexao funcionou: quem falhou foi o comando la no servidor.
+						logger.error(`O comando "${command2Execute}" falhou em ${host} ` +
+							`(codigo de saida ${code}): ${saidaErro.trim()}`);
 						responder(setErrorResponse(`Error to execute command: ${saidaErro}`));
 					} else {
 						if (saidaErro)
@@ -164,13 +216,10 @@ function executeCommandOnClient(host, port, user, pass, command, response, tenta
 					saidaErro += data;
 				});
 			});
-		}).on('error', falhaDeConexao).connect({
-			host,
-			port,
-			username: user,
-			password: pass,
-			readyTimeout: TEMPO_LIMITE_CONEXAO
-		})
+		});
+
+		conn.on('error', falhaDeConexao);
+		conn.connect(opcoesDaConexao);
 	} catch (error) {
 		logger.error(`Erro inesperado na conexao com ${host}:${port}`, error);
 		responder(setErrorResponse(friendlyConnectionError(error, host, port)));
