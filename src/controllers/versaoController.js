@@ -1,9 +1,24 @@
 const config = require('../config');
-const prependFile = require('prepend-file');
 const path = require('path');
 const fs = require('fs');
 const { getDateFormatted } = require('../utils')
 const logger = require('../logger');
+
+// Grava o registro no inicio do arquivo, criando o diretorio e o arquivo se
+// ainda nao existirem.
+async function prependFile(file, content) {
+	await fs.promises.mkdir(path.dirname(file), { recursive: true });
+
+	let current = '';
+	try {
+		current = await fs.promises.readFile(file, 'utf8');
+	} catch (err) {
+		if (err.code !== 'ENOENT')
+			throw err;
+	}
+
+	await fs.promises.writeFile(file, content + current);
+}
 
 module.exports = {
 	saveData: (req, res) => {
@@ -17,36 +32,19 @@ module.exports = {
 		}
 
 		file = `${config.app.dirVersao}${file}`;
-		timestamp = getDateFormatted();
-		contentData = `${timestamp}: ${data}\n`;
-		let buffer = Buffer.from(contentData);
+		const contentData = `${getDateFormatted()}: ${data}\n`;
 
-		fs.exists(config.app.dirVersao, (found) => {
-			if (!found)
-				fs.mkdirSync(config.app.dirVersao, '0777', true);
-
-
-			prependFile(file, contentData)
-				.then(() => {
-					response = { success: `Success: ${file} Log file write with: ${data}` };
-					logger.debug(`Registro gravado em ${file}`);
-					res.json(response);
-				})
-				.catch((err) => {
-					response = { error: err.message };
-					logger.error(`Falha ao gravar em ${file}`, err);
-					res.json(response);
-				});
-			// appendFile(file, contentData, (err) => {
-			//     if (err) {
-			//         response = {error: err.message};
-			//     } else{
-			//         response = {success: `Success: ${file} Log file write with: ${data}`};
-			//     }
-			//     console.log(`Send: ${JSON.stringify(response)}`);
-			//     res.json(response);
-			//  });
-		});
+		prependFile(file, contentData)
+			.then(() => {
+				response = { success: `Success: ${file} Log file write with: ${data}` };
+				logger.debug(`Registro gravado em ${file}`);
+				res.json(response);
+			})
+			.catch((err) => {
+				response = { error: err.message };
+				logger.error(`Falha ao gravar em ${file}`, err);
+				res.json(response);
+			});
 	},
 	getData: (req, res) => {
 		let file = req.query.file;
