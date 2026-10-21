@@ -1,7 +1,7 @@
 const LOCKED = "LOCKED";
 const UNLOCKED = "UNLOCKED";
 const CMDREPO = "/home/svn/repositorio.sh"
-const URL_RELEASE = "http://www.inetsoft.com.br/area-cliente/bugs_newfeatures.html";
+const URL_RELEASE = "https://www.imobiliar.com.br/area-cliente/bugs_newfeatures.html";
 // Pausa entre o mklock/mkunlock e o mkcheck: o script ainda esta terminando no
 // servidor, e consultar na sequencia pode ler o estado anterior.
 const DELAY_CHECK_STATUS = 1500;
