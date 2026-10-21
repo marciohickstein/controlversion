@@ -28,7 +28,7 @@ module.exports = {
 		if (!file || !data) {
 			response = { error: 'Parameter file and data are required' };
 			logger.warn('Gravacao de log sem os parametros file/data');
-			return res.json(response);
+			return res.status(400).json(response);
 		}
 
 		file = `${config.app.dirVersao}${file}`;
@@ -43,27 +43,27 @@ module.exports = {
 			.catch((err) => {
 				response = { error: err.message };
 				logger.error(`Falha ao gravar em ${file}`, err);
-				res.json(response);
+				res.status(500).json(response);
 			});
 	},
 	getData: (req, res) => {
 		let file = req.query.file;
 
 		if (!file) {
-			response = { error: 'Parameter file is required' };
 			logger.warn('Leitura de log sem o parametro file');
-			return res.json(response);
+			return res.status(400).json({ error: 'Parameter file is required' });
 		}
 
-		filename = path.basename(file);
+		const filename = path.basename(file);
 		file = `${config.app.dirVersao}${filename}`;
 		fs.readFile(file, (err, data) => {
-			let fileData = err ? { error: err.message } : data.toString();
-
-			if (err)
+			if (err) {
 				logger.warn(`Nao foi possivel ler o arquivo de log ${file}: ${err.message}`);
+				const status = err.code === 'ENOENT' ? 404 : 500;
+				return res.status(status).json({ error: err.message });
+			}
 
-			return res.json(fileData);
+			return res.json(data.toString());
 		});
 	}
 }
